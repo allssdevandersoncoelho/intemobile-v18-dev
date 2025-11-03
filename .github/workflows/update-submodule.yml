@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: ALLSS - Configure Git
         run: |
           git config --global user.email "allssactionswf@noreply.allss.com.br"
@@ -20,7 +21,7 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: ALLSS - Clone testgit
+      - name: ALLSS - Clone testgit (repo B)
         uses: actions/checkout@v4
         with:
           repository: ${{ secrets.EXTERNAL }}
@@ -28,13 +29,17 @@ jobs:
           submodules: 'recursive'
           token: ${{ secrets.PAT }}
 
-      # - name: ALLSS - Update submodule
-      #   run: |
-      #     git pull
-      #     git submodule update --init --recursive --remote -f
-      #     git add .
-      #     git commit -m "Update submodule from authorized external command"
-      #     git push
+      # >>> NOVO: construir a mensagem de commit a partir do push do repo A
+      - name: ALLSS - Montar mensagem com todos os commits do push
+        run: |
+          {
+            echo "chore(submodules): update from ${GITHUB_REPOSITORY}"
+            echo
+            echo "Commits incluídos:"
+            jq -r '.commits[] | "- " + .message' "$GITHUB_EVENT_PATH"
+            echo
+            echo "Ref: ${GITHUB_REF_NAME} @ ${GITHUB_SHA}"
+          } > /tmp/commit_msg.txt
 
       - name: ALLSS - Força checkout nas branches dos submódulos
         run: |
@@ -49,5 +54,5 @@ jobs:
             git pull origin $branch || echo "⚠️  Falha ao dar pull em $branch em $name"
           '
           git add .
-          git commit -m "Update submodule from authorized external command" || echo "⚠️ Nada para commitar"
+          git commit -F /tmp/commit_msg.txt || echo "⚠️ Nada para commitar"
           git push || echo "⚠️ Nada para enviar"

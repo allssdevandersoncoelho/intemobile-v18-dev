@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="sequence_l10n_br_allss_nfe_import_product" model="ir.sequence">
+        <field name="code">sequence_l10n_br_allss_nfe_import_product</field>
+        <field name="prefix">NFE</field>
+        <field name="name">Sequência Produtos Importados Pela NF-e</field>
+    </record>
+</odoo>
