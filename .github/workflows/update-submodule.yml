@@ -33,7 +33,7 @@ jobs:
       - name: ALLSS - Montar mensagem com todos os commits do push
         run: |
           {
-            echo "chore(submodules): update from ${GITHUB_REPOSITORY}"
+            echo "Rebuild from ${GITHUB_REPOSITORY}"
             echo
             echo "Commits incluídos:"
             jq -r '.commits[] | "- " + .message' "$GITHUB_EVENT_PATH"
