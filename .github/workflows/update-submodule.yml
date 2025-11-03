@@ -1,0 +1,45 @@
+name: ALLSS Update Submodule Workflow
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  update_submodule:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ALLSS - Configure Git
+        run: |
+          git config --global user.email "allssactionswf@noreply.allss.com.br"
+          git config --global user.name "ALLSS Actions"
+
+      # Apenas para SSH
+      - name: ALLSS - Set up SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: ALLSS - Clone testgit
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.EXTERNAL }}
+          ref: ${{ secrets.REF2 }}
+          submodules: 'recursive'
+          token: ${{ secrets.PAT }}
+
+      - name: ALLSS - Força checkout nas branches dos submódulos
+        run: |
+          git pull
+          git submodule update --init --recursive -f
+          git submodule foreach '
+            echo "➡️  Atualizando submódulo $name"
+            branch=$(git config -f $toplevel/.gitmodules submodule.$name.branch || echo main)
+            echo "🌀 Usando branch: $branch"
+            git fetch origin $branch || echo "⚠️  Falha ao buscar branch $branch em $name"
+            git checkout $branch || echo "⚠️  Falha ao fazer checkout de $branch em $name"
+            git pull origin $branch || echo "⚠️  Falha ao dar pull em $branch em $name"
+          '
+          git add .
+          git commit -m "Update submodule from authorized external command" || echo "⚠️ Nada para commitar"
+          git push || echo "⚠️ Nada para enviar"
