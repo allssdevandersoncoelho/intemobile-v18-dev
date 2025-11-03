@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="balance_structure_update_data" model="ir.cron">
+        <field name="name">Balancete Estruturado - Atualiza Dados</field>
+        <field name="model_id" ref="allss_custom_account_reports.model_allss_balance_account_structure"/>
+        <field name="state">code</field>
+        <field name="user_id" ref="base.user_root"/>
+        <field name="interval_number">1</field>
+        <field name="interval_type">months</field>
+        <field name="numbercall">-1</field>
+        <field name="doall" eval="False"/>
+        <field name="active" eval="False"/>
+        <field name="priority">1</field>
+        <field name="code">
+            model.execute_sql()
+            model.init_account_structure()
+        </field>
+    </record>
+
+    <record id="balance_structure_zeroed_accounts_month" model="ir.cron">
+        <field name="name">Balancete Estruturado - Contas Zeradas Mês</field>
+        <field name="model_id" ref="allss_custom_account_reports.model_allss_balance_account_structure"/>
+        <field name="state">code</field>
+        <field name="user_id" ref="base.user_root"/>
+        <field name="interval_number">1</field>
+        <field name="interval_type">months</field>
+        <field name="numbercall">-1</field>
+        <field name="doall" eval="False"/>
+        <field name="priority">1</field>
+        <field name="code">
+            model.init_account_structure()
+        </field>
+    </record>
+
+    <record id="balance_structure_general_calc" model="ir.cron">
+        <field name="name">Balancete Estruturado - Cálculo Geral Balanço</field>
+        <field name="model_id" ref="account.model_account_move_line"/>
+        <field name="state">code</field>
+        <field name="user_id" ref="base.user_root"/>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="numbercall">-1</field>
+        <field name="doall" eval="False"/>
+        <field name="priority">5</field>
+        <field name="code">
+            model.calculation_balances_general()
+            <!-- #model.calculation_balances_general_tag() -->
+            model.calculation_balances_general_struc()
+        </field>
+    </record>
+
+    <record id="balance_structure_analityc_accounts_update_data" model="ir.cron">
+        <field name="name">Balancete Estruturado Contas Analiticas - Atualiza Dados</field>
+        <field name="model_id" ref="allss_custom_account_reports.model_allss_balance_account_analytic"/>
+        <field name="state">code</field>
+        <field name="user_id" ref="base.user_root"/>
+        <field name="interval_number">1</field>
+        <field name="interval_type">months</field>
+        <field name="numbercall">-1</field>
+        <field name="doall" eval="False"/>
+        <field name="active" eval="False"/>
+        <field name="priority">1</field>
+        <field name="code">
+            model.execute_sql()
+            model.init_account_analytic()
+        </field>
+    </record>
+
+    <record id="balance_structure_zeroed_analityc_accounts_month" model="ir.cron">
+        <field name="name">Balancete Estruturado Contas Analíticas - Contas Zeradas Mês</field>
+        <field name="model_id" ref="allss_custom_account_reports.model_allss_balance_account_analytic"/>
+        <field name="state">code</field>
+        <field name="user_id" ref="base.user_root"/>
+        <field name="interval_number">1</field>
+        <field name="interval_type">months</field>
+        <field name="numbercall">-1</field>
+        <field name="doall" eval="False"/>
+        <field name="priority">1</field>
+        <field name="code">
+            model.init_account_analytic()
+        </field>
+    </record>
+
+    <!-- <record id="balance_structure_accounts_analitic_tags_update_data" model="ir.cron">
+        <field name="name">Balancete Estruturado Contas e Tags Analiticas - Atualiza Dados</field>
+        <field name="model_id" ref="allss_custom_account_reports.model_allss_balance_account_analytic_tag"/>
+        <field name="state">code</field>
+        <field name="user_id" ref="base.user_root"/>
+        <field name="interval_number">15</field>
+        <field name="interval_type">minutes</field>
+        <field name="numbercall">-1</field>
+        <field name="doall" eval="False"/>
+        <field name="active" eval="False"/>
+        <field name="priority">1</field>
+        <field name="code">
+            model.execute_sql_tag()
+            model.init_account_tag()
+        </field>
+    </record> -->
+
+    <!-- <record id="balance_structure_zeroed_accounts_analityc_tags_accounts_month" model="ir.cron">
+        <field name="name">Balancete Estruturado Contas e Tags Analíticas - Contas Zeradas Mês</field>
+        <field name="model_id" ref="allss_custom_account_reports.model_allss_balance_account_analytic_tag"/>
+        <field name="state">code</field>
+        <field name="user_id" ref="base.user_root"/>
+        <field name="interval_number">1</field>
+        <field name="interval_type">months</field>
+        <field name="numbercall">-1</field>
+        <field name="doall" eval="False"/>
+        <field name="priority">1</field>
+        <field name="code">
+            model.init_account_tag()
+        </field>
+    </record> -->
+    
+    <!-- <record id="balance_structure_zeroed_accounts_analityc_tags_accounts_month" model="ir.cron">
+        <field name="name">Balancete Estruturado Contas e Tags Analíticas - Contas Zeradas Mês</field>
+        <field name="model_id" ref="allss_custom_account_reports.model_allss_balance_account_analytic_tag"/>
+        <field name="state">code</field>
+        <field name="user_id" ref="base.user_root"/>
+        <field name="interval_number">1</field>
+        <field name="interval_type">months</field>
+        <field name="numbercall">-1</field>
+        <field name="doall" eval="False"/>
+        <field name="priority">1</field>
+        <field name="code">
+            model.init_account_tag()
+        </field>
+    </record> -->
+</odoo>

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_balance_account_analytic_tree" model="ir.ui.view">
+        <field name="name">view.balance.account.analytic.list</field>
+        <field name="model">allss.balance.account.analytic</field>
+        <field name="arch" type="xml">
+            <list string="Balancete Estruturado Contas Analiticas" create="false" edit="false" delete="false" duplicate="false">
+                <!-- <field name="allss_company_id"/> -->
+                <field name="allss_parent_id_6" column_invisible="True"/>
+                <field name="allss_parent_id_5" column_invisible="True"/>
+                <field name="allss_parent_id_4" column_invisible="True"/>
+                <field name="allss_parent_id_3" column_invisible="True"/>
+                <field name="allss_group_id" column_invisible="True"/>
+                <field name="allss_account_analytic_id"/>
+                <field name="allss_analytic_plan_id" column_invisible="True"/>
+                <field name="allss_account_id"/>
+                <field name="allss_date"/>
+                <field name="allss_previous_balance" sum="Previous Balance"/>
+                <field name="allss_debit" sum="Total Debit"/>
+                <field name="allss_credit" sum="Total Credit"/>
+                <field name="allss_final_balance" sum="Current Balance"/>
+                <button name="open_document" string="open" type="object"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_balance_account_analytic_pivot" model="ir.ui.view">
+        <field name="name">view.balance.account.analytic.pivot</field>
+        <field name="model">allss.balance.account.analytic</field>
+        <field name="arch" type="xml">
+            <pivot string="Balancete Estruturado Contas Analiticas">
+                <!-- <field name="allss_company_id"/> -->
+                <field name="allss_parent_id_6" invisible="1"/>
+                <field name="allss_parent_id_5" invisible="1"/>
+                <field name="allss_parent_id_4" invisible="1"/>
+                <field name="allss_parent_id_3" invisible="1"/>
+                <field name="allss_group_id" invisible="1"/>
+                <field name="allss_analytic_plan_id" invisible="1"/>
+                <field name="allss_account_analytic_id"/>
+                <field name="allss_account_id"/>
+                <field name="allss_date"/>
+                <field name="allss_previous_balance" sum="Previous Balance"/>
+                <field name="allss_debit" sum="Total Debit"/>
+                <field name="allss_credit" sum="Total Credit"/>
+                <field name="allss_final_balance" sum="Current Balance"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_search_balance_account_analytic" model="ir.ui.view">
+        <field name="name">view.search.balance.account.analytic</field>
+        <field name="model">allss.balance.account.analytic</field>
+        <field name="arch" type="xml">
+            <search string="Balancete Estruturado Contas Analiticas">
+                <group expand="1" string="Group By">
+                    <filter string="Data" name="data" domain="[]" context="{'group_by':'allss_date'}"></filter>
+                    <filter string="Grupo Analítico" name="allss_analytic_plan_id" domain="[]" context="{'group_by':'allss_analytic_plan_id'}"/>
+                    <filter string="Conta Analítica" name="allss_account_analytic_id" domain="[]" context="{'group_by':'allss_account_analytic_id'}"/>
+                    <filter string="1º nível" name="allss_parent_id_6" domain="[]" context="{'group_by':'allss_parent_id_6'}"/>
+                    <filter string="2º nível" name="allss_parent_id_5" domain="[]" context="{'group_by':'allss_parent_id_5'}"/>
+                    <filter string="3º nível" name="allss_parent_id_4" domain="[]" context="{'group_by':'allss_parent_id_4'}"/>
+                    <filter string="4º nível" name="allss_parent_id_3" domain="[]" context="{'group_by':'allss_parent_id_3'}"/>
+                    <filter string="5º nível" name="allss_group_id" domain="[]" context="{'group_by':'allss_group_id'}"/>
+                    <filter string="Conta" name="allss_account_id" domain="[]" context="{'group_by':'allss_account_id'}"/>
+                    <filter string="Empresa" name="allss_company_id" domain="[]" context="{'group_by':'allss_company_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_balance_account_analytic" model="ir.actions.act_window">
+        <field name="name">Balancete Estruturado Contas Analiticas</field>
+        <field name="res_model">allss.balance.account.analytic</field>
+        <!-- <field name="view_mode">list,pivot</field> -->
+        <field name="view_mode">list</field>
+        <field name="search_view_id" ref="view_search_balance_account_analytic"/>
+    </record>
+
+    <record id="action_view_tree" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_balance_account_analytic_tree"/>
+        <field name="act_window_id" ref="action_balance_account_analytic"/>
+    </record>
+
+    <menuitem
+        id="menu_balance_account_analytic"
+        name="Balancete Estruturado Contas Analiticas"
+        parent="account_reports.account_reports_audit_reports_menu"
+        action="action_balance_account_analytic"
+        sequence="40"
+    />
+
+    <record id="action_balance_account_analytic_recalculate" model="ir.actions.server">
+        <field name="name">Recalculo Balancete Estruturado</field>
+        <field name="model_id" ref="model_allss_balance_account_analytic"/>
+        <field name="state">code</field>
+        <field name="code">
+model.execute_sql()
+model.init_account_analytic()
+        </field>
+    </record>
+
+    <menuitem
+        id="menu_balance_account_analytic_recalculate"
+        name="Balancete Estruturado Contas Analiticas"
+        parent="allss_custom_account_reports.recalculate_balance_structure"
+        action="action_balance_account_analytic_recalculate"
+        sequence="31"
+    />
+</odoo>

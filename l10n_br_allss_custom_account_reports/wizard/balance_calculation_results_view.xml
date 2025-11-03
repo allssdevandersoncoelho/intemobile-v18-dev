@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_balance_calculation_form" model="ir.ui.view">
+            <field name="name">balance.calculation.form</field>
+            <field name="model">allss.balance.calculation.result</field>
+            <field name="type">form</field>
+            <field eval="2" name="priority"/>
+            <field name="arch" type="xml">
+                <form string="Apuração de Resultados Contas Analiticas">
+                    <header>
+                            <button name="accounts_action" state="draft" string="Contas Apuração" class="oe_highlight"  type="object"/>
+                            <button name="action_post" state="draft" string="Post" type="object" class="oe_highlight" groups="account.group_account_invoice"/>
+                            <field name="allss_state" widget="statusbar"/>
+                    </header>
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="allss_date"/>
+                                <field name="allss_reference"/>
+                                <field name="allss_account_journal_id"/>
+                            </group>
+                        </group>
+
+                        <notebook>
+                            <page string="Contas Analíticas">
+                                <field name="allss_balance_line_ids">
+                                    <list>
+                                        <field name="allss_company_id" invisible="1"/>
+                                        <field name="allss_account_id"/>
+                                        <field name="allss_account_analytic_id"/>
+                                        <field name="allss_date" invisible="1"/>
+                                        <field name="allss_debit" sum="Total Debit"/>
+                                        <field name="allss_credit" sum="Total Credit"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+    <record id="view_balance_calculation_tree" model="ir.ui.view">
+        <field name="name">view.balance.calculation.list</field>
+        <field name="model">allss.balance.calculation.result</field>
+        <field name="arch" type="xml">
+            <list string="Apuração de Resultados Contas Analiticas">
+                <field name="allss_date"/>
+                <field name="allss_reference"/>
+                <field name="allss_state"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_balance_calculation_pivot" model="ir.ui.view">
+        <field name="name">view.balance.calculation.pivot</field>
+        <field name="model">allss.balance.calculation.result</field>
+        <field name="arch" type="xml">
+            <pivot string="Apuração de Resultados Contas Analiticas">
+                <field name="allss_date"/>
+                <field name="allss_reference"/>
+                <field name="allss_state"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_search_balance_calculation" model="ir.ui.view">
+        <field name="name">view.search.balance.calculation</field>
+        <field name="model">allss.balance.calculation.result</field>
+        <field name="arch" type="xml">
+            <search string="Apuração de Resultados Contas Analiticas">
+                <field name="allss_date"/>
+                <field name="allss_reference"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_balance_calculation" model="ir.actions.act_window">
+        <field name="name">Apuração de Resultados Contas Analiticas</field>
+        <field name="res_model">allss.balance.calculation.result</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_search_balance_calculation"/>
+    </record>
+
+    <record id="action_view_tree" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_balance_calculation_tree"/>
+        <field name="act_window_id" ref="action_balance_calculation"/>
+    </record>
+
+    <menuitem
+        id="menu_balance_calculation"
+        name="Apuração de Resultado do Exercício (Contas Analíticas)"
+        parent="account.account_account_menu"
+        action="action_balance_calculation"
+        sequence="50"
+    />
+        <!-- parent="account.menu_finance_entries_actions" -->
+</odoo>
