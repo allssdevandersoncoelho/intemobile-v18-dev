@@ -28,18 +28,26 @@ jobs:
           submodules: 'recursive'
           token: ${{ secrets.PAT }}
 
-      - name: ALLSS - Força checkout nas branches dos submódulos
+      - name: ALLSS - Update submodule
         run: |
           git pull
-          git submodule update --init --recursive -f
-          git submodule foreach '
-            echo "➡️  Atualizando submódulo $name"
-            branch=$(git config -f $toplevel/.gitmodules submodule.$name.branch || echo main)
-            echo "🌀 Usando branch: $branch"
-            git fetch origin $branch || echo "⚠️  Falha ao buscar branch $branch em $name"
-            git checkout $branch || echo "⚠️  Falha ao fazer checkout de $branch em $name"
-            git pull origin $branch || echo "⚠️  Falha ao dar pull em $branch em $name"
-          '
+          git submodule update --init --recursive --remote -f
           git add .
-          git commit -m "Update submodule from authorized external command" || echo "⚠️ Nada para commitar"
-          git push || echo "⚠️ Nada para enviar"
+          git commit -m "Update submodule from authorized external command"
+          git push
+
+      # - name: ALLSS - Força checkout nas branches dos submódulos
+      #   run: |
+      #     git pull
+      #     git submodule update --init --recursive -f
+      #     git submodule foreach '
+      #       echo "➡️  Atualizando submódulo $name"
+      #       branch=$(git config -f $toplevel/.gitmodules submodule.$name.branch || echo main)
+      #       echo "🌀 Usando branch: $branch"
+      #       git fetch origin $branch || echo "⚠️  Falha ao buscar branch $branch em $name"
+      #       git checkout $branch || echo "⚠️  Falha ao fazer checkout de $branch em $name"
+      #       git pull origin $branch || echo "⚠️  Falha ao dar pull em $branch em $name"
+      #     '
+      #     git add .
+      #     git commit -m "Update submodule from authorized external command" || echo "⚠️ Nada para commitar"
+      #     git push || echo "⚠️ Nada para enviar"
