@@ -17,7 +17,7 @@
     'contributors': [
         'Tiago Prates - tiago.prates@allss.com.br',
         'Anderson Coelho - anderson.coelho@allss.com.br',
-        'Caíque Anastácio - caique.anastacio@allss.com.br',
+        'Caíque Anastácio - caique.anastacio@allss.com.br', 
     ],
     'depends': [
         'l10n_br_allss_nfe_import',
