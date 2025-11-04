@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <menuitem id="menu_l10n_br_allss_wizard_nfe_import_sales" name="Importar NF-e (XML) - Vendas"
-              parent="menu_l10n_br_allss_nfe_automation" action="action_l10n_br_allss_wizard_nfe_import"
+              parent="l10n_br_allss_nfe_import.menu_l10n_br_allss_nfe_automation" action="action_l10n_br_allss_wizard_nfe_import"
               sequence="2" />
 </odoo>
