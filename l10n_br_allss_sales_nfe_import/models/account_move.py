@@ -1451,7 +1451,7 @@ class AllssAccountMoveNfeImport(models.Model):
             'is_storable': True,
             'uom_id': uom_id or self.env.ref('uom.product_uom_unit').id or False,
             'uom_po_id': uom_id or self.env.ref('uom.product_uom_unit').id or False,
-            'l10n_br_allss_fiscal_ncm_id': ncm_id.id,
+            # 'l10n_br_allss_fiscal_ncm_id': ncm_id.id,  #TODO check
             'standard_price': get(nfe_item, 'vUnCom'),
             'lst_price': 0.0,
             # todo ALLSS: está implementado o CEST?
