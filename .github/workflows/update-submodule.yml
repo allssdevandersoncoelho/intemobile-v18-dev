@@ -29,14 +29,15 @@ jobs:
           submodules: 'recursive'
           token: ${{ secrets.PAT }}
 
-      # >>> NOVO: construir a mensagem de commit a partir do push do repo A
-      - name: ALLSS - Montar mensagem com todos os commits do push
+      # >>> NOVO: construir a mensagem de commit a partir do push do repo A, com autores
+      - name: ALLSS - Montar mensagem com commits e autores do push
         run: |
           {
             echo "Rebuild from ${GITHUB_REPOSITORY}"
             echo
             echo "Commits incluídos:"
-            jq -r '.commits[] | "- " + .message' "$GITHUB_EVENT_PATH"
+            # Cada commit listado com autor e mensagem
+            jq -r '.commits[] | "- " + .message + " (por " + .author.name + " <" + .author.email + ">)"' "$GITHUB_EVENT_PATH"
             echo
             echo "Ref: ${GITHUB_REF_NAME} @ ${GITHUB_SHA}"
           } > /tmp/commit_msg.txt
