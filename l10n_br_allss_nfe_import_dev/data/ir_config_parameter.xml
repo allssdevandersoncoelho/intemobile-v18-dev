@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="l10n_br_allss_nfe_import_product_sequence_id" model="ir.config_parameter">
+        <field name="key">l10n_br_allss_nfe_import.l10n_br_allss_product_sequence_id</field>
+        <field name="value" ref="sequence_l10n_br_allss_nfe_import_product"/>
+    </record>
+    <record id="l10n_br_allss_nfe_import_nfe_mde_limit_for_process" model="ir.config_parameter">
+        <field name="key">l10n_br_allss_nfe_import.l10n_br_allss_nfe_import_nfe_mde_limit_for_process</field>
+        <field name="value">50</field>
+    </record>
+</odoo>
