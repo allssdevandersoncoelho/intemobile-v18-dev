@@ -24,9 +24,9 @@
     ],
     'data': [
         # Data
-        'data/ir_sequence.xml',
-        'data/ir_config_parameter.xml',
-        'data/ir_cron.xml',
+        # 'data/ir_sequence.xml',
+        # 'data/ir_config_parameter.xml',
+        # 'data/ir_cron.xml',
 
         # Views
         'views/l10n_br_allss_nfe_mde_view.xml',

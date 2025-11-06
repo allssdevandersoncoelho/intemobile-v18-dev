@@ -1112,7 +1112,7 @@ class AllssAccountMoveNfeImport(models.Model):
                         'purchase_line_id': purchase_line_id.id,
                         'purchase_order_id': purchase_order_id
                     })
-            if not purchase_line_id and purchase_order_automation and item_dict.get('product_id'):
+            if not purchase_line_id and purchase_order_automation and item_dict.get('product_id') and account_move_dict.get('move_type') == 'in_invoice':
                 if not purchase_order_id:
                     ret.update(self._l10n_br_allss_create_purchase_order_vals(
                         account_move_dict, dfe, nfe_mde_item and nfe_mde_item.l10n_br_allss_xped))
@@ -1615,30 +1615,30 @@ class AllssAccountMoveNfeImport(models.Model):
 
             return message
 
-    def _get_purchase_line_id(
-            self, item, purchase_order_id, supplierinfo_automation=False):
-        purchase_line_ids = self.env['purchase.order.line'].sudo().search([
-            ('order_id', '=', purchase_order_id)], order='sequence')
+    # def _get_purchase_line_id(
+    #         self, item, purchase_order_id, supplierinfo_automation=False):
+    #     purchase_line_ids = self.env['purchase.order.line'].sudo().search([
+    #         ('order_id', '=', purchase_order_id)], order='sequence')
 
-        if not purchase_line_ids:
-            return False, "Item de ordem de compra não localizado"
+    #     if not purchase_line_ids:
+    #         return False, "Item de ordem de compra não localizado"
 
-        purchase_line_id = purchase_line_ids[int(
-            item.item_pedido_compra) - 1]
+    #     purchase_line_id = purchase_line_ids[int(
+    #         item.item_pedido_compra) - 1]
 
-        if hasattr(purchase_line_id.product_id, 'seller_id'):
-            seller_id = purchase_line_id.product_id.seller_id
+    #     if hasattr(purchase_line_id.product_id, 'seller_id'):
+    #         seller_id = purchase_line_id.product_id.seller_id
 
-            if seller_id and seller_id.product_code == item.product_cprod:
-                return purchase_line_id
-            else:
-                return purchase_line_ids.filtered(
-                    lambda x: x.product_id.seller_id.product_code ==
-                              item.product_cprod)
+    #         if seller_id and seller_id.product_code == item.product_cprod:
+    #             return purchase_line_id
+    #         else:
+    #             return purchase_line_ids.filtered(
+    #                 lambda x: x.product_id.seller_id.product_code ==
+    #                           item.product_cprod)
 
-        message = self._create_supplierinfo(
-            item, purchase_line_id, supplierinfo_automation)
-        return purchase_line_id, message
+    #     message = self._create_supplierinfo(
+    #         item, purchase_line_id, supplierinfo_automation)
+    #     return purchase_line_id, message
 
     def _get_company_account_move(self, auto, nfe, partner_automation):
         emit = nfe.NFe.infNFe.emit
