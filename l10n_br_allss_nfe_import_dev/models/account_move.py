@@ -1302,10 +1302,10 @@ class AllssAccountMoveNfeImport(models.Model):
         _logger.warning(f">>>>> ALLSS > import_nfe 🟢 str(nfe.NFe.pag.detPag[0].tPag {str(nfe.NFe.infNFe.pag.detPag[0].tPag)}")
         account_move_dict.update({
             'l10n_br_edi_payment_method': str(
-                nfe.NFe.pag.detPag[0].tPag
-                if hasattr(nfe.NFe, 'pag')
-                and hasattr(nfe.NFe.pag, 'detPag')
-                and len(nfe.NFe.pag.detPag) > 0
+                nfe.NFe.infNFe.pag.detPag[0].tPag
+                if hasattr(nfe.NFe.infNFe, 'pag')
+                and hasattr(nfe.NFe.infNFe.pag, 'detPag')
+                and len(nfe.NFe.infNFe.pag.detPag) > 0
                 else '99'
             ).zfill(2)
         })
