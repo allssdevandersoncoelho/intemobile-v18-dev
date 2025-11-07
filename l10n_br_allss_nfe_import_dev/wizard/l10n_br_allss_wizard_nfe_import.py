@@ -69,6 +69,7 @@ class L10nBrAlssWizardNfeImport(models.TransientModel):
         obj_account_move = self.env.get('account.move').sudo()
         company_id = self.env.company.sudo()
         
+        _logger.warning(f'>>>>> 🔴 nfe{nfe} --- xml {xml} ')
         _logger.warning(f'>>>>>>>>>> ALLSS > _l10n_br_allss_import_xml > company_id ({type(company_id)}): {company_id}')
         _logger.warning(f'>>>>>>>>>> ALLSS > _l10n_br_allss_import_xml > company_id.l10n_br_allss_fiscal_position_id_automation ({type(company_id.l10n_br_allss_fiscal_position_id_automation )}): {company_id.l10n_br_allss_fiscal_position_id_automation }')
 
