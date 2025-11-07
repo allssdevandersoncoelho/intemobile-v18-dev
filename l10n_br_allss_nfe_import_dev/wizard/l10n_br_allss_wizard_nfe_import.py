@@ -121,6 +121,7 @@ class L10nBrAlssWizardNfeImport(models.TransientModel):
         else:
             xml_list.append(
                 {'name': 'NF-e', 'file': base64.b64decode(self.l10n_br_allss_nfe_xml)})
+            _logger.warning(f'>>>>> 🔴 ALLSS > NF-e Import > l10n_br_allss_action_import_nfe > xml_list ({type(xml_list)}): {xml_list}')
 
         error_xml = []
         for xml in xml_list:
