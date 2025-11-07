@@ -127,6 +127,7 @@ class L10nBrAlssWizardNfeImport(models.TransientModel):
         for xml in xml_list:
             try:
                 ret = self._l10n_br_allss_import_xml(auto, xml['file'])
+                _logger.warning(f'>>>>> 🔴 {ret} ')
                 if not ret:
                     # return False
                     continue
