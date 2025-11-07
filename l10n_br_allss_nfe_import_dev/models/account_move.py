@@ -1295,9 +1295,15 @@ class AllssAccountMoveNfeImport(models.Model):
         account_move_dict.update({'l10n_br_allss_trailer_ids': transport_data})
         account_move_dict.update({'l10n_br_allss_volume_ids': [(0, 0, self.get_vol(nfe))]})
 
-        account_move_dict.update({'l10n_br_edi_payment_method': nfe.NFe.pag.detPag[0].tPag 
-                                                        if hasattr(nfe.NFe, 'pag') and hasattr(nfe.NFe.pag, 'detPag') and len(nfe.NFe.pag.detPag) > 0 
-                                                        else '99'}).zfill(2)
+        # account_move_dict.update({'l10n_br_edi_payment_method': nfe.NFe.pag.detPag[0].tPag 
+        #                                                 if hasattr(nfe.NFe, 'pag') and hasattr(nfe.NFe.pag, 'detPag') and len(nfe.NFe.pag.detPag) > 0 
+        #                                                 else '99'}).zfill(2)
+        account_move_dict['l10n_br_edi_payment_method'] = (
+            str(nfe.NFe.pag.detPag[0].tPag).zfill(2)
+            if hasattr(nfe.NFe, 'pag') and hasattr(nfe.NFe.pag, 'detPag') and len(nfe.NFe.pag.detPag) > 0
+            else '99'
+        )
+
         account_move_dict.update(self.get_cobr_dup(nfe))
         account_move_dict.update(self.get_det_pag(nfe))
         account_move_dict.pop('destinatary', False)
