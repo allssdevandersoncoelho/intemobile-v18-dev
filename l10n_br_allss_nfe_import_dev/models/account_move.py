@@ -1321,6 +1321,47 @@ class AllssAccountMoveNfeImport(models.Model):
         account_move = self.sudo().create(account_move_dict)
         _logger.warning(f">>>>> ALLSS > import_nfe > account_move ({type(account_move)}): {account_move}")
         return account_move
+    
+
+    def action_post(self):
+        if not self.origin and self.type == 'out_invoice':
+            move_lines = []
+            for line in self.invoice_line_ids:
+                move_lines_values = {
+                    'name': line.product_id.name,
+                    'product_id': line.product_id.id,
+                    'product_uom_qty': line.quantity,
+                    'quantity_done': line.quantity,
+                    'product_uom': line.uom_id.id,
+                    # 'price_unit': line.price_unit,
+                } 
+                move_lines.append((0, 0, move_lines_values))
+            
+            location_dest_id = self.partner_id.property_stock_customer.id or \
+                self.picking_type_id.default_location_dest_id.id
+
+            if not self.picking_type_id:
+                raise UserError('Tipo de Operação não está definido')
+            else:
+                picking = {               
+                    'partner_id': self.partner_id.id,
+                    'location_id': self.picking_type_id.default_location_src_id.id,
+                    'location_dest_id': location_dest_id,
+                    'picking_type_id': self.picking_type_id.id,
+                    'move_lines': move_lines,
+                    'origin': self.number,
+                    'invoice_id': self.id,
+                }
+                stock_picking = self.env['stock.picking'].sudo().create(picking)
+                stock_picking.action_confirm()
+                stock_picking.action_assign()
+                for move_line in stock_picking.move_line_ids_without_package:
+                    move_line._allss_analytic_account_id = line.account_analytic_id.id
+                stock_picking.button_validate()
+                # self._compute_picking()
+
+        return super().action_invoice_open()
+
 
     def l10n_br_allss_get_journal_id(self, company_id, type):
         journal_id = False
