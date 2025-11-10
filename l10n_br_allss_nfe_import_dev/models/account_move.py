@@ -86,10 +86,11 @@ class AllssAccountMoveNfeImport(models.Model):
     l10n_br_allss_nfe_xml_portions_data = fields.Text('NF-e XML Portions')
 
     
-    def default_l10n_br_allss_picking_type_id(self):
-        l10n_br_allss_picking_type_id = self.env['stock.picking.type'].sudo().with_company(self.company_id).search([('code', '=', 'outgoing')], limit=1)
-        return l10n_br_allss_picking_type_id.id if l10n_br_allss_picking_type_id else None
+    # def default_l10n_br_allss_picking_type_id(self):
+    #     l10n_br_allss_picking_type_id = self.env['stock.picking.type'].sudo().with_company(self.company_id).search([('code', '=', 'outgoing')], limit=1)
+    #     return l10n_br_allss_picking_type_id.id if l10n_br_allss_picking_type_id else None
     
+    # l10n_br_allss_picking_type_id = fields.Many2one('stock.picking.type', default=default_l10n_br_allss_picking_type_id, string='Tipo de Operação', copy=False, store=True)
     l10n_br_allss_picking_type_id = fields.Many2one('stock.picking.type', default=default_l10n_br_allss_picking_type_id, string='Tipo de Operação', copy=False, store=True)
 
     def get_ide(self, nfe, operacao, fiscal_position_id):
