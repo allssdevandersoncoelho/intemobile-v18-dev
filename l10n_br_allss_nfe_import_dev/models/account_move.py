@@ -1324,7 +1324,7 @@ class AllssAccountMoveNfeImport(models.Model):
     
 
     def action_post(self):
-        if not self.origin and self.type == 'out_invoice':
+        if self.l10n_br_allss_nf_status == "imported" and self.type == 'out_invoice':
             move_lines = []
             for line in self.invoice_line_ids:
                 move_lines_values = {
