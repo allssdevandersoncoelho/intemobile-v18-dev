@@ -1360,7 +1360,7 @@ class AllssAccountMoveNfeImport(models.Model):
                 stock_picking.button_validate()
                 # self._compute_picking()
 
-        return super().action_invoice_open()
+        return super().action_post()
 
 
     def l10n_br_allss_get_journal_id(self, company_id, type):
