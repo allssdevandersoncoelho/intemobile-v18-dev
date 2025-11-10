@@ -85,6 +85,13 @@ class AllssAccountMoveNfeImport(models.Model):
         'l10n.br.allss.nfe.mde', string="Manifesto Eletrônico", readonly=True)
     l10n_br_allss_nfe_xml_portions_data = fields.Text('NF-e XML Portions')
 
+    
+    def default_l10n_br_allss_picking_type_id(self):
+        l10n_br_allss_picking_type_id = self.env['stock.picking.type'].search([('code', '=', 'outgoing')], limit=1)
+        return l10n_br_allss_picking_type_id.id if l10n_br_allss_picking_type_id else None
+    
+    l10n_br_allss_picking_type_id = fields.Many2one('stock.picking.type', default=default_l10n_br_allss_picking_type_id, string='Tipo de Operação', copy=False, store=True)
+
     def get_ide(self, nfe, operacao, fiscal_position_id):
         """
         Importa a seção <ide> do xml
@@ -1323,6 +1330,8 @@ class AllssAccountMoveNfeImport(models.Model):
         return account_move
     
 
+    
+
     def action_post(self):
         if self.l10n_br_allss_nf_status == "imported" and self.move_type == 'out_invoice':
             move_lines = []
@@ -1338,16 +1347,16 @@ class AllssAccountMoveNfeImport(models.Model):
                 move_lines.append((0, 0, move_lines_values))
             
             location_dest_id = self.partner_id.property_stock_customer.id or \
-                self.picking_type_id.default_location_dest_id.id
+                self.l10n_br_allss_picking_type_id.default_location_dest_id.id
 
-            if not self.picking_type_id:
+            if not self.l10n_br_allss_picking_type_id:
                 raise UserError('Tipo de Operação não está definido')
             else:
                 picking = {               
                     'partner_id': self.partner_id.id,
-                    'location_id': self.picking_type_id.default_location_src_id.id,
+                    'location_id': self.l10n_br_allss_picking_type_id.default_location_src_id.id,
                     'location_dest_id': location_dest_id,
-                    'picking_type_id': self.picking_type_id.id,
+                    'picking_type_id': self.l10n_br_allss_picking_type_id.id,
                     'move_lines': move_lines,
                     'origin': self.number,
                     'invoice_id': self.id,
