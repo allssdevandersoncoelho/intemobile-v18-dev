@@ -1361,7 +1361,7 @@ class AllssAccountMoveNfeImport(models.Model):
                     'origin': self.number,
                     'invoice_id': self.id,
                 }
-                stock_picking = self.env['stock.picking'].sudo().create(picking)
+                stock_picking = self.env['stock.picking'].sudo().with_company(self.company_id).create(picking)
                 stock_picking.action_confirm()
                 stock_picking.action_assign()
                 for move_line in stock_picking.move_line_ids_without_package:
