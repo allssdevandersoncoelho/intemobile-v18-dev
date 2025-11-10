@@ -1334,7 +1334,7 @@ class AllssAccountMoveNfeImport(models.Model):
     
 
     def action_post(self):
-        _logger.warning(f'>>>>>>>>>> 🟠CHEGOU ALLSS > action_post > picking ({type(picking)}): {picking}')
+        _logger.warning(f'>>>>>>>>>> 🟠CHEGOU')
         self = self.with_company(self.company_id)
         if self.l10n_br_allss_nf_status == "imported" and self.move_type == 'out_invoice':
             move_lines = []
@@ -1355,6 +1355,7 @@ class AllssAccountMoveNfeImport(models.Model):
             if not self.l10n_br_allss_picking_type_id:
                 raise UserError('Tipo de Operação não está definido')
             else:
+                _logger.warning(f'>>>>>>>>>> 🟠CHEGOU antes PICKING')
                 picking = {               
                     'partner_id': self.partner_id.id,
                     'location_id': self.l10n_br_allss_picking_type_id.default_location_src_id.id,
