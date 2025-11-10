@@ -1334,6 +1334,7 @@ class AllssAccountMoveNfeImport(models.Model):
     
 
     def action_post(self):
+        _logger.warning(f'>>>>>>>>>> 🟠CHEGOU ALLSS > action_post > picking ({type(picking)}): {picking}')
         self = self.with_company(self.company_id)
         if self.l10n_br_allss_nf_status == "imported" and self.move_type == 'out_invoice':
             move_lines = []
