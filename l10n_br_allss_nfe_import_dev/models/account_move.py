@@ -1386,22 +1386,22 @@ class AllssAccountMoveNfeImport(models.Model):
                 stock_picking.action_confirm()
                 stock_picking.action_assign()
 
-                for move in picking.move_ids:
+                for move in stock_picking.move_ids:
                     self.env['stock.move.line'].create({
                         'move_id': move.id,
                         'product_id': move.product_id.id,
                         'product_uom_id': move.product_uom.id,
                         'qty_done': move.product_uom_qty,
-                        'location_id': picking.location_id.id,
-                        'location_dest_id': picking.location_dest_id.id,
-                        'picking_id': picking.id,
+                        'location_id': stock_picking.location_id.id,
+                        'location_dest_id': stock_picking.location_dest_id.id,
+                        'picking_id': stock_picking.id,
                     })
 
                 for move_line in stock_picking.move_line_ids_without_package:
                     move_line._allss_analytic_account_id = line.account_analytic_id.id
                 
                 stock_picking.button_validate()
-                # self._compute_picking()
+                self._compute_picking()
 
         return super().action_post()
 
