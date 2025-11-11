@@ -1358,7 +1358,7 @@ class AllssAccountMoveNfeImport(models.Model):
                 _logger.warning(f'>>>>>>>>>> 🟠CHEGOU antes PICKING')
                 picking = {               
                     'partner_id': self.partner_id.id,
-                    'location_id': self.l10n_br_allss_picking_type_id.location_id.id,  
+                    'location_id': self.l10n_br_allss_picking_type_id.default_location_src_id.id,  
                     'location_dest_id': location_dest_id,
                     'picking_type_id': self.l10n_br_allss_picking_type_id.id,
                     'move_lines': move_lines,
