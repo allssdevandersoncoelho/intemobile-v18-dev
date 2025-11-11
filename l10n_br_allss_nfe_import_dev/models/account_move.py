@@ -1385,8 +1385,21 @@ class AllssAccountMoveNfeImport(models.Model):
                 _logger.warning(f'>>>>>>>>>> 🟠🟠CHEGOU ALLSS > action_post > picking ({type(picking)}): {picking}')
                 stock_picking.action_confirm()
                 stock_picking.action_assign()
+
+                for move in picking.move_ids:
+                    self.env['stock.move.line'].create({
+                        'move_id': move.id,
+                        'product_id': move.product_id.id,
+                        'product_uom_id': move.product_uom.id,
+                        'qty_done': move.product_uom_qty,
+                        'location_id': picking.location_id.id,
+                        'location_dest_id': picking.location_dest_id.id,
+                        'picking_id': picking.id,
+                    })
+
                 for move_line in stock_picking.move_line_ids_without_package:
                     move_line._allss_analytic_account_id = line.account_analytic_id.id
+                
                 stock_picking.button_validate()
                 # self._compute_picking()
 
