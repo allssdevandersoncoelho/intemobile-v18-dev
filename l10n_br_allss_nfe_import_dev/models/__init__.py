@@ -7,3 +7,4 @@ from . import purchase_order_line
 from . import l10n_br_allss_nfe_mde_item
 from . import l10n_br_allss_nfe_mde_item_taxation
 from . import product_product
+from . import stock_picking
