@@ -95,12 +95,13 @@ class AllssAccountMoveNfeImport(models.Model):
             pickings = self.env['stock.picking'].search([('l10n_br_allss_account_move_id', '=', r.id)])
             if pickings:
                 r.l10n_br_allss_picking_ids = [(6, 0, pickings.ids)]
-                r.l10n_br_picking_count = len(pickings)
+                r.l10n_br_allss_picking_count = len(pickings)
     
     l10n_br_allss_picking_type_id = fields.Many2one('stock.picking.type', default=default_l10n_br_allss_picking_type_id,
                                                      string='Tipo de Operação', copy=False, store=True,
                                                      domain="[('company_id', '=', company_id)]")    
     l10n_br_allss_picking_ids = fields.Many2many('stock.picking', compute='_compute_picking', string='Picking', copy=False, store=True)
+    l10n_br_allss_picking_count = fields.Integer(compute='_compute_picking', string='Picking count', default=0, store=True)
 
     
 
@@ -1411,6 +1412,28 @@ class AllssAccountMoveNfeImport(models.Model):
                 self._compute_picking()
 
         return super().action_post()
+    
+
+    def l10n_br_allss_action_view_picking(self):
+        """ This function returns an action that display existing picking orders of given purchase order ids. When only one found, show the picking immediately.
+        """
+        action = self.env.ref('stock.action_picking_tree_all')
+        result = action.read()[0]
+        # override the context to get rid of the default filtering on operation type
+        result['context'] = {}
+        pick_ids = self.mapped('picking_ids')
+        # choose the view_mode accordingly
+        if not pick_ids or len(pick_ids) > 1:
+            result['domain'] = "[('id','in',%s)]" % (pick_ids.ids)
+        elif len(pick_ids) == 1:
+            res = self.env.ref('stock.view_picking_form', False)
+            form_view = [(res and res.id or False, 'form')]
+            if 'views' in result:
+                result['views'] = form_view + [(state,view) for state,view in result['views'] if view != 'form']
+            else:
+                result['views'] = form_view
+            result['res_id'] = pick_ids.id
+        return result
 
 
     def l10n_br_allss_get_journal_id(self, company_id, type):
