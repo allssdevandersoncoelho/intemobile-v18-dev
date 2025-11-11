@@ -1421,7 +1421,7 @@ class AllssAccountMoveNfeImport(models.Model):
         result = action.read()[0]
         # override the context to get rid of the default filtering on operation type
         result['context'] = {}
-        pick_ids = self.mapped('picking_ids')
+        pick_ids = self.mapped('l10n_br_allss_picking_ids')
         # choose the view_mode accordingly
         if not pick_ids or len(pick_ids) > 1:
             result['domain'] = "[('id','in',%s)]" % (pick_ids.ids)
