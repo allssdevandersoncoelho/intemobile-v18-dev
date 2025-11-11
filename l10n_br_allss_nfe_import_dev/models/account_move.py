@@ -1354,7 +1354,7 @@ class AllssAccountMoveNfeImport(models.Model):
                     'name': line.product_id.name,
                     'product_id': line.product_id.id,
                     'product_uom_qty': line.quantity,
-                    'quantity_done': line.quantity,
+                    # 'quantity_done': line.quantity,
                     'product_uom': line.product_uom_id.id,
                     # 'price_unit': line.price_unit,
                 } 
