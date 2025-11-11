@@ -1366,7 +1366,7 @@ class AllssAccountMoveNfeImport(models.Model):
                     'location_dest_id': location_dest_id,
                     'picking_type_id': self.l10n_br_allss_picking_type_id.id,
                     'move_lines': move_lines,
-                    'origin': self.number,
+                    'origin': self.name,
                     'invoice_id': self.id,
                 }
                 _logger.warning(f'>>>>>>>>>> 🟠CHEGOU ALLSS > action_post > picking ({type(picking)}): {picking}')

@@ -6,7 +6,9 @@
             <field name="inherit_id" ref="account.view_move_form"/>
             <field name="arch" type="xml">
                 <xpath expr="//page[@name='other_info']/group" position="inside">
-                    <field name="l10n_br_allss_picking_type_id"/>
+                    <group string="Movimentação de Estoque" name="group_allss_picking_type">
+                        <field name="l10n_br_allss_picking_type_id"/>
+                    </group>
                 </xpath>
 
             </field>
