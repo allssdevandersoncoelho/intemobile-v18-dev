@@ -7,7 +7,7 @@ import re
 import base64
 import pytz
 import logging
-from odoo import fields, models, _
+from odoo import fields, models, _, Command
 from dateutil import parser
 from datetime import datetime
 from lxml import objectify
@@ -1367,7 +1367,7 @@ class AllssAccountMoveNfeImport(models.Model):
                     'picking_type_id': self.l10n_br_allss_picking_type_id.id,
                     'move_lines': move_lines,
                     'origin': self.name,
-                    'invoice_id': self.id,
+                    # 'invoice_id': self.id,
                 }
                 _logger.warning(f'>>>>>>>>>> 🟠CHEGOU ALLSS > action_post > picking ({type(picking)}): {picking}')
                 stock_picking = self.env['stock.picking'].sudo().with_company(self.company_id).create(picking)
