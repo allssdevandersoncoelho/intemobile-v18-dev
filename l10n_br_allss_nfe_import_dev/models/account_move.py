@@ -1374,8 +1374,9 @@ class AllssAccountMoveNfeImport(models.Model):
                     'location_id': self.l10n_br_allss_picking_type_id.default_location_src_id.id,  
                     'location_dest_id': location_dest_id,
                     'picking_type_id': self.l10n_br_allss_picking_type_id.id,
-                    'move_lines': move_lines,
+                    'move_ids': move_lines,
                     'origin': self.name,
+                    # 'move_lines': move_lines,
                     # 'invoice_id': self.id,
                     'l10n_br_allss_account_move_id': self.id,
                 }
