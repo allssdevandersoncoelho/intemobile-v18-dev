@@ -90,10 +90,19 @@ class AllssAccountMoveNfeImport(models.Model):
         l10n_br_allss_picking_type_id = self.env['stock.picking.type'].sudo().with_company(self.company_id).search([('code', '=', 'outgoing')], limit=1)
         return l10n_br_allss_picking_type_id.id if l10n_br_allss_picking_type_id else None
     
+    def _compute_picking(self):
+        for r in self:
+            pickings = self.env['stock.picking'].search([('l10n_br_allss_account_move_id', '=', r.id)])
+            if pickings:
+                r.picking_ids = [(6, 0, pickings.ids)]
+                r.picking_count = len(pickings)
+    
     l10n_br_allss_picking_type_id = fields.Many2one('stock.picking.type', default=default_l10n_br_allss_picking_type_id,
                                                      string='Tipo de Operação', copy=False, store=True,
-                                                     domain="[('company_id', '=', company_id)]")
-    # l10n_br_allss_picking_type_id = fields.Many2one('stock.picking.type', string='Tipo de Operação', copy=False, store=True)
+                                                     domain="[('company_id', '=', company_id)]")    
+    l10n_br_allss_picking_ids = fields.Many2many('stock.picking', compute='_compute_picking', string='Picking', copy=False, store=True)
+
+    
 
     def get_ide(self, nfe, operacao, fiscal_position_id):
         """
@@ -1368,6 +1377,7 @@ class AllssAccountMoveNfeImport(models.Model):
                     'move_lines': move_lines,
                     'origin': self.name,
                     # 'invoice_id': self.id,
+                    'l10n_br_allss_account_move_id': self.id,
                 }
                 _logger.warning(f'>>>>>>>>>> 🟠CHEGOU ALLSS > action_post > picking ({type(picking)}): {picking}')
                 stock_picking = self.env['stock.picking'].sudo().with_company(self.company_id).create(picking)
