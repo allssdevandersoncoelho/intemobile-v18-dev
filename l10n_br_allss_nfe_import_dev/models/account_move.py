@@ -1351,6 +1351,8 @@ class AllssAccountMoveNfeImport(models.Model):
             
             location_dest_id = self.partner_id.property_stock_customer.id or \
                 self.l10n_br_allss_picking_type_id.default_location_dest_id.id
+            
+            _logger.warning(f'>>>>>>>>>> 🟠location_dest_id {location_dest_id}')
 
             if not self.l10n_br_allss_picking_type_id:
                 raise UserError('Tipo de Operação não está definido')
