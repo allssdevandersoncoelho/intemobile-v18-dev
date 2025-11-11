@@ -95,7 +95,7 @@ class AllssAccountMoveNfeImport(models.Model):
             pickings = self.env['stock.picking'].search([('l10n_br_allss_account_move_id', '=', r.id)])
             if pickings:
                 r.l10n_br_allss_picking_ids = [(6, 0, pickings.ids)]
-                r.l10n_br_allss_picking_count = len(pickings)
+                r.l10n_br_picking_count = len(pickings)
     
     l10n_br_allss_picking_type_id = fields.Many2one('stock.picking.type', default=default_l10n_br_allss_picking_type_id,
                                                      string='Tipo de Operação', copy=False, store=True,
