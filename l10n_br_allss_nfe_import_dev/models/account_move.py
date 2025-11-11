@@ -1397,8 +1397,15 @@ class AllssAccountMoveNfeImport(models.Model):
                         'picking_id': stock_picking.id,
                     })
 
-                for move_line in stock_picking.move_line_ids_without_package:
-                    move_line._allss_analytic_account_id = line.account_analytic_id.id
+                # for move_line in stock_picking.move_line_ids_without_package:
+                #     move_line._allss_analytic_account_id = line.account_analytic_id.id
+
+                for line in self.invoice_line_ids:
+                    analytic_account = line.analytic_distribution and list(line.analytic_distribution.keys())[0] or False
+                    for move_line in stock_picking.move_line_ids_without_package:
+                        if analytic_account:
+                            move_line._allss_analytic_account_id = int(analytic_account)
+
                 
                 stock_picking.button_validate()
                 self._compute_picking()
