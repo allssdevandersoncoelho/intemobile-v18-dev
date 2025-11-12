@@ -1192,6 +1192,7 @@ class AllssAccountMoveNfeImport(models.Model):
                    account_move_dict=None, 
                    purchase_order_automation=False):
 
+        _logger.warning(f"Contexto import_nfe:{self.env.context}")
         account_move_dict = account_move_dict or {}
         partner_vals = self._get_company_account_move(auto, nfe, partner_automation)
         if not partner_vals:
@@ -1496,6 +1497,7 @@ class AllssAccountMoveNfeImport(models.Model):
         :return: nova instância do objeto 'account.account'
         :rtype: object
         """
+        _logger.warning(f">> CHEGOU _allss_get_account_receivable ")
         obj_account_account = self.env.get('account.account')
         code = self._allss_get_next_code()
         group_id = self.env.context.get('allss_group_id').id
