@@ -1498,6 +1498,7 @@ class AllssAccountMoveNfeImport(models.Model):
         :rtype: object
         """
         _logger.warning(f">> CHEGOU _allss_get_account_receivable ")
+        _logger.warning(f"Contexto _allss_get_account_receivable:{self.env.context}")
         obj_account_account = self.env.get('account.account')
         code = self._allss_get_next_code()
         group_id = self.env.context.get('allss_group_id').id
