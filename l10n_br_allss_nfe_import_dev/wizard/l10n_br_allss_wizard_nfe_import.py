@@ -85,7 +85,10 @@ class L10nBrAlssWizardNfeImport(models.TransientModel):
             account_move_dict=False,
             purchase_order_automation=company_id.l10n_br_allss_purchase_order_automation
         )
-        _logger.warning(f'>>>>> 🔴 obj_account_move: {obj_account_move}')
+        context = dict(self.env.context)
+        context.update({
+            'allss_group_id': self.allss_group_id,
+        })
         if not obj_account_move:
             return False
         else:
