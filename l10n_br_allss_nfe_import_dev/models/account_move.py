@@ -1501,7 +1501,7 @@ class AllssAccountMoveNfeImport(models.Model):
         _logger.warning(f"Contexto _allss_get_account_receivable:{self.env.context}")
         obj_account_account = self.env.get('account.account')
         code = self._allss_get_next_code()
-        group_id = self.env.context.get('allss_group_id').id
+        group_id = self.env.context.get('l10n_br_allss_group_id').id
         account_ids = obj_account_account.search(
             [('name', 'ilike', partner_name), ('group_id', '=', group_id)])
         partner_ids = self.env.get('res.partner').search(
