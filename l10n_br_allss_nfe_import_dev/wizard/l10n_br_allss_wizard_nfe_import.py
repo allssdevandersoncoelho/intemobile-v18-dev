@@ -70,7 +70,7 @@ class L10nBrAlssWizardNfeImport(models.TransientModel):
         # obj_account_move = self.env.get('account.move').sudo()
         obj_account_move = (
         self.env['account.move']
-            .with_context(l10n_br_allss_group_id=self.allss_group_id.id)
+            .with_context(l10n_br_allss_group_id=self.l10n_br_allss_group_id.id)
             .sudo()
         )
         company_id = self.env.company.sudo()
