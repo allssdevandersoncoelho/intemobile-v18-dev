@@ -1591,10 +1591,7 @@ class AllssAccountMoveNfeImport(models.Model):
 
         partner_id = self.env['res.partner'].sudo().create(partner)
         partner_id.write({
-            'customer': True,
-            'property_account_receivable_id': self._allss_get_account_receivable(
-                partner_id.name),
-        })
+            'property_account_receivable_id': self._allss_get_account_receivable(partner_id.name),})
         partner_id.message_post(body="<ul><li>Parceiro criado através da importação\
                                 de xml</li></ul>")
 
