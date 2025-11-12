@@ -68,11 +68,7 @@ class L10nBrAlssWizardNfeImport(models.TransientModel):
     def _l10n_br_allss_import_xml(self, auto, xml):
         nfe = objectify.fromstring(xml)
         # obj_account_move = self.env.get('account.move').sudo()
-        obj_account_move = (
-        self.env['account.move']
-            .with_context(l10n_br_allss_group_id=self.l10n_br_allss_group_id.id)
-            .sudo()
-        )
+        obj_account_move = (self.env['account.move'].with_context(l10n_br_allss_group_id=self.l10n_br_allss_group_id).sudo())
         company_id = self.env.company.sudo()
         _logger.warning(f'>>>>> 🟢 obj_account_move: {obj_account_move}')
         
