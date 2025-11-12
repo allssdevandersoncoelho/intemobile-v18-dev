@@ -1472,6 +1472,8 @@ class AllssAccountMoveNfeImport(models.Model):
         Método resonsável por gerar o próximo código para a conta contábil baseado no dado do
         prefixo do grupo de conta fornecido por contexto
         """
+        _logger.warning("Contexto atual: %s", self.env.context)
+
         code_prefix = self.env.context.get('l10n_br_allss_group_id').code_prefix_start
         if not code_prefix.endswith('.'):
             code_prefix += '.'
