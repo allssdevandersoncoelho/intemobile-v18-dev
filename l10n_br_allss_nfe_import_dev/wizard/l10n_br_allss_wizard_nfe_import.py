@@ -37,6 +37,7 @@ class L10nBrAlssWizardNfeImport(models.TransientModel):
         string="Ignorar Xml com erro?", help="Se marcado vai ignorar os xmls \
         que estão com erro e importar o restante! Os xmls com erro serão \
         disponibilizados para download", default=True)
+    l10n_br_allss_group_id = fields.Many2one('account.group', 'Grupo Contábil', required=True)
 
     def _l10n_br_allss_unzip_xml_files(self):
         _logger.warning(f'>>>>> ALLSS > NF-e Import > _l10n_br_allss_unzip_xml_files > self.l10n_br_allss_zip_file ({type(self.l10n_br_allss_zip_file)}): {self.l10n_br_allss_zip_file}')
