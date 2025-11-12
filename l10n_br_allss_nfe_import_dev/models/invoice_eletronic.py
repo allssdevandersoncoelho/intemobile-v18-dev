@@ -21,7 +21,7 @@ class AllssInvoiceEletronic(models.Model):
         Método resonsável por gerar o próximo código para a conta contábil baseado no dado do
         prefixo do grupo de conta fornecido por contexto
         """
-        code_prefix = self.env.context.get('allss_group_id').code_prefix
+        code_prefix = self.env.context.get('l10n_br_allss_group_id').code_prefix_start
         if not code_prefix.endswith('.'):
             code_prefix += '.'
         obj_account_account = self.env.get('account.account')
