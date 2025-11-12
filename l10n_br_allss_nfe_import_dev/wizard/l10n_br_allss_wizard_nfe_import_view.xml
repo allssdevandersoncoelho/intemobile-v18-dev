@@ -8,6 +8,7 @@
                 <field name="state" invisible="1" />
                 <group invisible="state != 'ok'">
                     <field name="l10n_br_allss_import_batch_zip"/>
+                    <field name="l10n_br_allss_group_id"/>
                     <field name="l10n_br_allss_nfe_xml" invisible="l10n_br_allss_import_batch_zip == True"/>
                     <field name="l10n_br_allss_skip_wrong_xml" invisible="l10n_br_allss_import_batch_zip == False"/>
                     <field name="l10n_br_allss_zip_file" invisible="l10n_br_allss_import_batch_zip == False"/>
