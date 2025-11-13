@@ -14,7 +14,7 @@
 
                 <xpath expr="//page[@name='other_info']/group" position="inside">
                     <group string="Movimentação de Estoque" name="group_allss_picking_type">
-                        <field name="l10n_br_allss_picking_type_id"/>
+                        <field name="l10n_br_allss_picking_type_id" domain="[('company_id', '=', company_id)]"/>
                     </group>
                 </xpath>
 
