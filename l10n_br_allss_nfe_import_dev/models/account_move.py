@@ -87,7 +87,10 @@ class AllssAccountMoveNfeImport(models.Model):
 
     
     def default_l10n_br_allss_picking_type_id(self):
-        l10n_br_allss_picking_type_id = self.env['stock.picking.type'].sudo().with_company(self.company_id).search([('code', '=', 'outgoing')], limit=1)
+        l10n_br_allss_picking_type_id = self.env['stock.picking.type'].sudo().with_company(self.company_id).search([
+            ('code', '=', 'outgoing'),
+            ('company_id', 'in', [self.company_id.id, False])
+        ], limit=1)
         return l10n_br_allss_picking_type_id.id if l10n_br_allss_picking_type_id else None
     
     def _compute_picking(self):
