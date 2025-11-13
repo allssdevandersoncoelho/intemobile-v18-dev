@@ -6,7 +6,7 @@
             <field name="inherit_id" ref="account.view_move_form"/>
             <field name="arch" type="xml">
                 <xpath expr="//div[hasclass('oe_button_box')]" position="inside">
-                    <button type="object" name="l10n_br_allss_action_view_picking" class="oe_stat_button" icon="fa-truck" invisible='l10n_br_allss_picking_ids == False'>
+                    <button type="object" name="l10n_br_allss_action_view_picking" class="oe_stat_button" icon="fa-truck" invisible='l10n_br_allss_picking_count == 0'>
                         <field name="l10n_br_allss_picking_count" widget="statinfo" string="Shipments"/>
                         <field name="l10n_br_allss_picking_ids" invisible="1"/>
                     </button>
