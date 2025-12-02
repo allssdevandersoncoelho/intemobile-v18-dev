@@ -3,7 +3,7 @@
     <menuitem id="menu_l10n_br_allss_nfe_automation" name="Automação de NF-e" parent="account.menu_finance_entries"
               sequence="30"/>
     <menuitem id="menu_l10n_br_allss_wizard_nfe_import" name="Importar NF-e (XML) - Vendas"
-              parent="menu_l10n_br_allss_nfe_automation" action="action_l10n_br_allss_wizard_nfe_import"
+              parent="menu_l10n_br_allss_nfe_automation" action="l10n_br_allss_nfe_import.action_l10n_br_allss_wizard_nfe_import"
               sequence="1" />
     <!-- <menuitem id="menu_l10n_br_allss_nfe_mde" name="NFEs Recebidas" action="action_l10n_br_allss_nfe_mde"
               parent="menu_l10n_br_allss_nfe_automation" sequence="2"/> -->
