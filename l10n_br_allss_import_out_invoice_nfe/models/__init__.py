@@ -1,0 +1,10 @@
+from . import account_move
+# from . import l10n_br_allss_nfe_mde
+# from . import res_company
+# from . import res_config_settings
+# from . import account_move_line
+# from . import purchase_order_line
+# from . import l10n_br_allss_nfe_mde_item
+# from . import l10n_br_allss_nfe_mde_item_taxation
+# from . import product_product
+from . import stock_picking

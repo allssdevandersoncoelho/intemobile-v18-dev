@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_l10n_br_allss_nfe_automation" name="Automação de NF-e" parent="account.menu_finance_entries"
+              sequence="30"/>
+    <menuitem id="menu_l10n_br_allss_wizard_nfe_import" name="Importar NF-e (XML)"
+              parent="menu_l10n_br_allss_nfe_automation" action="action_l10n_br_allss_wizard_nfe_import"
+              sequence="1" />
+    <menuitem id="menu_l10n_br_allss_nfe_mde" name="NFEs Recebidas" action="action_l10n_br_allss_nfe_mde"
+              parent="menu_l10n_br_allss_nfe_automation" sequence="2"/>
+    <menuitem id="menu_l10n_br_allss_wizard_nfe_schedule" name="Verificar novas NFEs"
+              parent="menu_l10n_br_allss_nfe_automation" action="action_l10n_br_allss_wizard_nfe_schedule" sequence="3"/>
+</odoo>
