@@ -20,7 +20,7 @@
     'depends': [
         'l10n_br_allss_sales_nfe_import'
         'l10n_br_allss_eletronic_document_lc',
-        'l10n_br_allss_purchase_order_tax',
+        'l10n_br_allss_purchase_order_tax', 
     ],
     # 'external_dependencies': {
     #     'python': [
