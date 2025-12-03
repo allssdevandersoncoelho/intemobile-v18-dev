@@ -19,16 +19,16 @@ from contextlib import contextmanager
 _logger = logging.getLogger(__name__)
 
 
-# def convert(obj, conversion=None):
-#     if conversion:
-#         return conversion(obj.text)
-#     if isinstance(obj, objectify.StringElement):
-#         return str(obj)
-#     if isinstance(obj, objectify.IntElement):
-#         return int(obj)
-#     if isinstance(obj, objectify.FloatElement):
-#         return float(obj)
-#     raise u"Tipo não implementado %s" % str(type(obj))
+def convert(obj, conversion=None):
+    if conversion:
+        return conversion(obj.text)
+    if isinstance(obj, objectify.StringElement):
+        return str(obj)
+    if isinstance(obj, objectify.IntElement):
+        return int(obj)
+    if isinstance(obj, objectify.FloatElement):
+        return float(obj)
+    raise u"Tipo não implementado %s" % str(type(obj))
 
 
 def get(obj, path, conversion=None):
@@ -53,16 +53,16 @@ def get(obj, path, conversion=None):
 #     return res
 
 
-# def cnpj_cpf_format(cnpj_cpf):
-#     if len(cnpj_cpf) == 14:
-#         cnpj_cpf = (cnpj_cpf[0:2] + '.' + cnpj_cpf[2:5] +
-#                     '.' + cnpj_cpf[5:8] +
-#                     '/' + cnpj_cpf[8:12] +
-#                     '-' + cnpj_cpf[12:14])
-#     else:
-#         cnpj_cpf = (cnpj_cpf[0:3] + '.' + cnpj_cpf[3:6] +
-#                     '.' + cnpj_cpf[6:9] + '-' + cnpj_cpf[9:11])
-#     return cnpj_cpf
+def cnpj_cpf_format(cnpj_cpf):
+    if len(cnpj_cpf) == 14:
+        cnpj_cpf = (cnpj_cpf[0:2] + '.' + cnpj_cpf[2:5] +
+                    '.' + cnpj_cpf[5:8] +
+                    '/' + cnpj_cpf[8:12] +
+                    '-' + cnpj_cpf[12:14])
+    else:
+        cnpj_cpf = (cnpj_cpf[0:3] + '.' + cnpj_cpf[3:6] +
+                    '.' + cnpj_cpf[6:9] + '-' + cnpj_cpf[9:11])
+    return cnpj_cpf
 
 
 # def format_ncm(ncm):
