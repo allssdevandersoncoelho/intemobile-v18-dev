@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <record model="ir.ui.view" id="view_l10n_br_allss_wizard_nfe_import_form">
-        <field name="name">ALLSS Importação de NFe</field>
+    <record model="ir.ui.view" id="view_l10n_br_allss_wizard_nfe_out_invoice_import_form">
+        <field name="name">ALLSS Importação de NFe - Vendas</field>
         <field name="model">l10n.br.allss.wizard.nfe.import</field>
         <field name="arch" type="xml">
-            <form string="Importação de NFe">
+            <form string="Importação de NFe - Vendas">
                 <field name="state" invisible="1" />
                 <group invisible="state != 'ok'">
                     <field name="l10n_br_allss_import_batch_zip"/>
