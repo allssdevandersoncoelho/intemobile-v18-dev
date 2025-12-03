@@ -41,7 +41,7 @@
         'wizard/l10n_br_allss_wizard_nfe_import_view.xml',
         # 'wizard/l10n_br_allss_wizard_nfe_schedule_view.xml',
         # 'wizard/l10n_br_allss_wizard_operation_not_performed_view.xml',
-        # 'views/action.xml',
+        'views/action.xml',
         'views/menu.xml',
         'views/account_move.xml',
 
