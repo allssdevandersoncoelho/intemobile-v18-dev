@@ -19,34 +19,13 @@
     ],
     'depends': [
         'l10n_br_allss_nfe_import',
-        # 'l10n_br_allss_eletronic_document_lc',
-        # 'l10n_br_allss_purchase_order_tax', 
     ],
-    # 'external_dependencies': {
-    #     'python': [
-    #         'pytrustnfe', # 'pytrustnfe.nfe',
-    #         # 'pytrustnfe.certificado', 'pytrustnfe.utils'
-    #     ],
-    # },
+    
     'data': [
-        # Data
-        # 'data/ir_sequence.xml',
-        # 'data/ir_config_parameter.xml',
-        # 'data/ir_cron.xml',
-
-        # Views
-        # 'views/l10n_br_allss_nfe_mde_view.xml',
-        # 'views/res_company_view.xml',
-        # 'views/res_config_settings_view.xml',
         'wizard/l10n_br_allss_wizard_nfe_import_view.xml',
-        # 'wizard/l10n_br_allss_wizard_nfe_schedule_view.xml',
-        # 'wizard/l10n_br_allss_wizard_operation_not_performed_view.xml',
         'views/action.xml',
         'views/menu.xml',
         'views/account_move.xml',
-
-        # Security Files
-        # 'security/ir.model.access.csv',
     ],
     'installable': True,
     'auto_install': False,
