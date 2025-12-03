@@ -2,10 +2,10 @@
 # Part of ALLSS Soluções em Sistemas. See LICENSE file for full copyright and licensing details. License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
 {  # pylint: disable=C8101,C8103
-    'name': 'ALLSS - [Compras] Controle de XML (NF-e)',
+    'name': 'ALLSS - [Vendas] Controle de XML (NF-e)',
     'sequence': 41,
     'version': '18.0',
-    'summary': '''[Compras]Importação de NFe (XML) - by ALLSS Soluções em Sistemas.''',
+    'summary': '''[Vendas]Importação de NFe (XML) - by ALLSS Soluções em Sistemas.''',
     'description': '''Módulo de Importação de NFe (XML) e Manifesto do Destinatário relativo a NF-e Brasileira - by ALLSS Soluções em Sistemas.''',
     'category': 'Account',
     'author': 'ALLSS Soluções em Sistemas',
