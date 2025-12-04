@@ -250,7 +250,7 @@ class AllssAccountMoveNfeImport(models.Model):
     
 
     def action_post(self):
-        _logger.warning(f'>>>>>>>>>> 🟠CHEGOU')
+        # _logger.warning(f'>>>>>>>>>> 🟠CHEGOU')
         self = self.with_company(self.company_id)
         if self.l10n_br_allss_nf_status == "imported" and self.move_type == 'out_invoice':
             move_lines = []
@@ -259,21 +259,16 @@ class AllssAccountMoveNfeImport(models.Model):
                     'name': line.product_id.name,
                     'product_id': line.product_id.id,
                     'product_uom_qty': line.quantity,
-                    # 'quantity_done': line.quantity,
                     'product_uom': line.product_uom_id.id,
-                    # 'price_unit': line.price_unit,
                 } 
                 move_lines.append((0, 0, move_lines_values))
             
             location_dest_id = self.partner_id.property_stock_customer.id or \
                 self.l10n_br_allss_picking_type_id.default_location_dest_id.id
             
-            # _logger.warning(f'>>>>>>>>>> 🟠location_dest_id {location_dest_id}')
-
             if not self.l10n_br_allss_picking_type_id:
                 raise UserError('Tipo de Operação não está definido')
             else:
-                # _logger.warning(f'>>>>>>>>>> 🟠CHEGOU antes PICKING')
                 picking = {               
                     'partner_id': self.partner_id.id,
                     'location_id': self.l10n_br_allss_picking_type_id.default_location_src_id.id,  
@@ -281,13 +276,9 @@ class AllssAccountMoveNfeImport(models.Model):
                     'picking_type_id': self.l10n_br_allss_picking_type_id.id,
                     'move_ids': move_lines,
                     'origin': self.name,
-                    # 'move_lines': move_lines,
-                    # 'invoice_id': self.id,
                     'l10n_br_allss_account_move_id': self.id,
                 }
-                # _logger.warning(f'>>>>>>>>>> 🟠CHEGOU ALLSS > action_post > picking ({type(picking)}): {picking}')
-                stock_picking = self.env['stock.picking'].sudo().with_company(self.company_id).create(picking)
-                # _logger.warning(f'>>>>>>>>>> 🟠🟠CHEGOU ALLSS > action_post > picking ({type(picking)}): {picking}')
+                stock_picking = self.env['stock.picking'].sudo().with_company(self.company_id).create(picking)                
                 stock_picking.action_confirm()
                 stock_picking.action_assign()
 
