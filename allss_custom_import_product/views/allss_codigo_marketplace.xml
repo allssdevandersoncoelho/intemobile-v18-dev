@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<odoo>
+    <record id="codigo_produto_marketplace_view_tree" model="ir.ui.view">
+        <field name="name">codigo.produto.marketplace.view.tree</field>
+        <field name="model">allss.codigo.marketplace</field>
+        <field name="arch" type="xml">
+            <tree string="Códigos Produtos Marketplace" editable="bottom">
+                <field name="name"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="codigo_produto_marketplace_action" model="ir.actions.act_window">
+        <field name="name">Códigos Produtos Marketplace</field>
+        <field name="res_model">allss.codigo.marketplace</field>
+        <field name="view_id" ref="codigo_produto_marketplace_view_tree"/>
+    </record>
+
+    <record id="codigo_produto_marketplace_tree_view" model="ir.ui.view">
+        <field name="name">codigo.produto.marketplace.form</field>
+        <field name="model">allss.codigo.marketplace</field>
+        <field name="type">tree</field>
+        <field name="arch" type="xml" >
+            <tree string='Códigos Produtos Marketplace'>
+                <field name="name"/>
+            </tree>
+        </field>
+    </record>
+
+    <menuitem
+        id="menu_codigo_produto_marketplace"
+        name="Códigos Produtos Marketplace"
+        action="allss_custom_import_product.codigo_produto_marketplace_action"
+        parent="product.product_category_action_form"
+        sequence="2"/>
+
+    <record id="allss_product_form_custom" model="ir.ui.view">
+        <field name="name">allss.product.form.custom</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='default_code']" position="after">
+                <field name="l10n_br_allss_codigo_marketplace" widget="many2many_tags"/>   
+            </xpath>
+        </field>
+    </record>
+</odoo>
