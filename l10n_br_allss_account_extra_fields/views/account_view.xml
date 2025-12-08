@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+        <!--Intemobile View Form Extension-->
+    <record id="intemobile_account_account_form" model="ir.ui.view">
+        <field name="name">intemobile.account.form</field>
+        <field name="model">account.account</field>
+        <field name="inherit_id" ref="account.view_account_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/group//group[last()]" position="after">
+                <group name="intemobile_extra_accounts_fields">
+                    <field name="l10n_br_allss_intemobile_code"/>
+                    <field name="l10n_br_allss_intemobile_name" />
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="intemobile_view_account_tree" model="ir.ui.view">
+            <field name="name">intemobile.account.account.tree</field>
+            <field name="model">account.account</field>
+            <field name="inherit_id" ref="account.view_account_list"/>
+            <field name="arch" type="xml">
+                <field name="name" position="after">
+                    <field name="l10n_br_allss_intemobile_code"/>
+                    <field name="l10n_br_allss_intemobile_name"/>
+                </field>
+            </field>
+        </record>
+</odoo>
