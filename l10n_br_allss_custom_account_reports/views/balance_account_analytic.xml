@@ -104,7 +104,7 @@ model.init_account_analytic()
     <menuitem
         id="menu_balance_account_analytic_recalculate"
         name="Balancete Estruturado Contas Analiticas"
-        parent="allss_custom_account_reports.recalculate_balance_structure"
+        parent="l10n_br_allss_custom_account_reports.recalculate_balance_structure"
         action="action_balance_account_analytic_recalculate"
         sequence="31"
     />

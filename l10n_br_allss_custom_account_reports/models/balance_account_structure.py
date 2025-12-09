@@ -327,5 +327,5 @@ class BalanceAccountStructure(models.Model):
     def update_balance(self):
         for rec in self:
             _logger.warning(f'####################### ATUALIZAR SALDOS #######################')
-            rec.env.ref('allss_custom_account_reports.balance_structure_update_data').method_direct_trigger()
+            rec.env.ref('l10n_br_allss_custom_account_reports.balance_structure_update_data').method_direct_trigger()
             break

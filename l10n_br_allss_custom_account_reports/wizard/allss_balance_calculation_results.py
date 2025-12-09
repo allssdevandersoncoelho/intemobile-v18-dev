@@ -50,7 +50,7 @@ class AccountBalanceCalculationResult(models.Model):
      
     def accounts_action(self):
         if self.allss_state == 'draft':
-            view_id = self.env.ref("allss_custom_account_reports.allss_account_group_view").id
+            view_id = self.env.ref("l10n_br_allss_custom_account_reports.allss_account_group_view").id
             return {
                 'name': _("Contas Contábeis para Apuração"),
                 'view_mode': 'form',

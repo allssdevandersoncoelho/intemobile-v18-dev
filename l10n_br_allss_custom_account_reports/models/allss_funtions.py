@@ -1,7 +1,7 @@
 
 def account_analytic_def(self):
     conf = self.env['ir.config_parameter'].sudo()
-    account_analytic_param = conf.get_param('allss_custom_account_reports.account_analytic')
+    account_analytic_param = conf.get_param('l10n_br_allss_custom_account_reports.account_analytic')
 
     account_analytic = self.env['account.analytic.account'].search([('code', '=', account_analytic_param)])
     analytic_account_plan = self.env['account.analytic.account'].search([('id', '=', account_analytic.id)])

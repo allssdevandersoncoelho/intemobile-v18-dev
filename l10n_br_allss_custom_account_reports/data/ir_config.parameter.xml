@@ -1,7 +1,7 @@
 <odoo>
     <data>
         <record id="allss_custom_account_reports_account_analytic" model="ir.config_parameter">
-            <field name="key">allss_custom_account_reports.account_analytic</field>
+            <field name="key">l10n_br_allss_custom_account_reports.account_analytic</field>
             <field name="value">1001</field>
         </record>
     </data>

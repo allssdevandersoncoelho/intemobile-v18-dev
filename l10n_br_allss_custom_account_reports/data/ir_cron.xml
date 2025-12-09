@@ -2,7 +2,7 @@
 <odoo>
     <record id="balance_structure_update_data" model="ir.cron">
         <field name="name">Balancete Estruturado - Atualiza Dados</field>
-        <field name="model_id" ref="allss_custom_account_reports.model_allss_balance_account_structure"/>
+        <field name="model_id" ref="l10n_br_allss_custom_account_reports.model_allss_balance_account_structure"/>
         <field name="state">code</field>
         <field name="user_id" ref="base.user_root"/>
         <field name="interval_number">1</field>
@@ -19,7 +19,7 @@
 
     <record id="balance_structure_zeroed_accounts_month" model="ir.cron">
         <field name="name">Balancete Estruturado - Contas Zeradas Mês</field>
-        <field name="model_id" ref="allss_custom_account_reports.model_allss_balance_account_structure"/>
+        <field name="model_id" ref="l10n_br_allss_custom_account_reports.model_allss_balance_account_structure"/>
         <field name="state">code</field>
         <field name="user_id" ref="base.user_root"/>
         <field name="interval_number">1</field>
@@ -51,7 +51,7 @@
 
     <record id="balance_structure_analityc_accounts_update_data" model="ir.cron">
         <field name="name">Balancete Estruturado Contas Analiticas - Atualiza Dados</field>
-        <field name="model_id" ref="allss_custom_account_reports.model_allss_balance_account_analytic"/>
+        <field name="model_id" ref="l10n_br_allss_custom_account_reports.model_allss_balance_account_analytic"/>
         <field name="state">code</field>
         <field name="user_id" ref="base.user_root"/>
         <field name="interval_number">1</field>
@@ -68,7 +68,7 @@
 
     <record id="balance_structure_zeroed_analityc_accounts_month" model="ir.cron">
         <field name="name">Balancete Estruturado Contas Analíticas - Contas Zeradas Mês</field>
-        <field name="model_id" ref="allss_custom_account_reports.model_allss_balance_account_analytic"/>
+        <field name="model_id" ref="l10n_br_allss_custom_account_reports.model_allss_balance_account_analytic"/>
         <field name="state">code</field>
         <field name="user_id" ref="base.user_root"/>
         <field name="interval_number">1</field>
@@ -83,7 +83,7 @@
 
     <!-- <record id="balance_structure_accounts_analitic_tags_update_data" model="ir.cron">
         <field name="name">Balancete Estruturado Contas e Tags Analiticas - Atualiza Dados</field>
-        <field name="model_id" ref="allss_custom_account_reports.model_allss_balance_account_analytic_tag"/>
+        <field name="model_id" ref="l10n_br_allss_custom_account_reports.model_allss_balance_account_analytic_tag"/>
         <field name="state">code</field>
         <field name="user_id" ref="base.user_root"/>
         <field name="interval_number">15</field>
@@ -100,7 +100,7 @@
 
     <!-- <record id="balance_structure_zeroed_accounts_analityc_tags_accounts_month" model="ir.cron">
         <field name="name">Balancete Estruturado Contas e Tags Analíticas - Contas Zeradas Mês</field>
-        <field name="model_id" ref="allss_custom_account_reports.model_allss_balance_account_analytic_tag"/>
+        <field name="model_id" ref="l10n_br_allss_custom_account_reports.model_allss_balance_account_analytic_tag"/>
         <field name="state">code</field>
         <field name="user_id" ref="base.user_root"/>
         <field name="interval_number">1</field>
@@ -115,7 +115,7 @@
     
     <!-- <record id="balance_structure_zeroed_accounts_analityc_tags_accounts_month" model="ir.cron">
         <field name="name">Balancete Estruturado Contas e Tags Analíticas - Contas Zeradas Mês</field>
-        <field name="model_id" ref="allss_custom_account_reports.model_allss_balance_account_analytic_tag"/>
+        <field name="model_id" ref="l10n_br_allss_custom_account_reports.model_allss_balance_account_analytic_tag"/>
         <field name="state">code</field>
         <field name="user_id" ref="base.user_root"/>
         <field name="interval_number">1</field>
