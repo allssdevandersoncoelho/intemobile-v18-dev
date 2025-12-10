@@ -47,12 +47,8 @@ class AccountBalanceCalculationResult(models.Model):
     #     return result
 
 
-    @api.model_create_multi
     def create(self, vals_list):
-        records = super(AccountBalanceCalculationResult, self).create(vals_list)
-        for rec in records:
-            rec.accounts_action()
-        return records
+        return super().create(vals_list)
 
 
 
@@ -69,6 +65,8 @@ class AccountBalanceCalculationResult(models.Model):
                 'target': 'new',
                 'context': self.id
             }
+
+
 
 
      
