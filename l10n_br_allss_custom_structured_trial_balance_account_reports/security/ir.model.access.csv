@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+allss.balance.account.analytic.access,allss.balance.account.analytic.access,l10n_br_allss_custom_structured_trial_balance_account_reports.model_allss_balance_account_analytic,account.group_account_user,1,1,1,1
+allss.balance.account.structure.access,allss.balance.account.structure.access,l10n_br_allss_custom_structured_trial_balance_account_reports.model_allss_balance_account_structure,account.group_account_user,1,1,1,1
+allss.account.group.access,allss.account.group.access,l10n_br_allss_custom_structured_trial_balance_account_reports.model_allss_account_group,account.group_account_user,1,1,1,1
+allss.balance.calculation.result.access,allss.balance.calculation.result.access,l10n_br_allss_custom_structured_trial_balance_account_reports.model_allss_balance_calculation_result,account.group_account_user,1,1,1,1
+allss.balance.line.result.access,allss.balance.line.result.access,l10n_br_allss_custom_structured_trial_balance_account_reports.model_allss_balance_line_result,account.group_account_user,1,1,1,1
