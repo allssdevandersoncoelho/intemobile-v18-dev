@@ -48,8 +48,9 @@ class AllssProductTemplate(models.Model):
     ### ALLSS - 01/03/2024 - Renata Carrillo - Início
     l10n_br_allss_codigo_marketplace = fields.Many2many('allss.codigo.marketplace', string="Código Produto Marketplace")
 
-class InvoiceEletronic(models.Model):
-    _inherit = 'invoice.eletronic'
+class AccountMove(models.Model):
+    _inherit = 'account.move'
+    # _inherit = 'invoice.eletronic'
 
 # ALLSS - 08/03/2024 - Renata Carrillo e Caíque Anastacio - Função (create_invoice_eletronic_item) originada do módulo 'br_nfe_import' da localização brasileira versão 12 (diretório: https://gitlab.com/allss_odoo/odoo-brasil branch 12.0)
 # Cliente solicitou mais um campo para verificação do cProd (l10n_br_allss_codigo_marketplace), com isso foi necessário retornar a função nesse módulo para poder adicionar mais um if (linhas: 81 a 85)

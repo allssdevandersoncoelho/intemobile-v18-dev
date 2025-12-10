@@ -40,11 +40,20 @@ class AccountBalanceCalculationResult(models.Model):
                                             string="Contas Analiticas")
 
 
-    @api.model
-    def create(self, vals):
-        result = super(AccountBalanceCalculationResult, self).create(vals)
-        result.accounts_action()
-        return result
+    # @api.model
+    # def create(self, vals):
+    #     result = super(AccountBalanceCalculationResult, self).create(vals)
+    #     result.accounts_action()
+    #     return result
+
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super(AccountBalanceCalculationResult, self).create(vals_list)
+        for rec in records:
+            rec.accounts_action()
+        return records
+
 
 
      
