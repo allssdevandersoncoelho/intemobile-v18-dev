@@ -217,7 +217,7 @@ class AccountMoveLine(models.Model):
             res_move = self.env['account.move'].search([('id', '=', move.move_id.id)])
             
             if res_move.state == 'draft':
-                return                        
+                continue                        
             result = self.env['allss.balance.account.structure'].search(["&",
                                                                 ('allss_account_id', '=', move.account_id.id),
                                                                 ("allss_date", "=", move.date)])
