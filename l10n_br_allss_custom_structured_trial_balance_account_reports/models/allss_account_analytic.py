@@ -215,69 +215,38 @@ class AccountAnalytic(models.Model):
         return result
 
      
-    # def unlink(self):
-    #     for move in self:
-    #         res_move = self.env['account.move'].search([('id', '=', move.move_id.id)])
-
-    #         if res_move.state == 'draft':
-    #             return
-
-    #         if move.analytic_distribution:
-        
-    #             analytic_ids = [int(x) for x in move.analytic_distribution.keys()]
-
-    #             result = self.env['allss.balance.account.analytic'].search(["&",
-    #                                                                 ('allss_account_id', '=', move.account_id.id),
-    #                                                                 ("allss_account_analytic_id", "in", analytic_ids),
-    #                                                                 ("allss_date", "=", move.date)])
-    #             _logger.warning(f"🟢 Result {result} | analytic_account_id {analytic_ids}")
-
-    #             for line in result:
-    #                 data = {
-    #                     'allss_company_id': line.allss_company_id.id,
-    #                     'allss_account_id': line.allss_account_id.id,
-    #                     'allss_analytic_plan_id': line.allss_analytic_plan_id.id,
-    #                     'allss_account_analytic_id': line.allss_account_analytic_id.id,
-    #                     'allss_date': line.allss_date,
-    #                     'allss_debit': line.allss_debit,
-    #                     'allss_credit': line.allss_credit
-    #                 }
-
-    #                 update_vals(self, 3, move, data, line)
-
-    #     res = super(AccountAnalytic, self).unlink()
-    #     return res
-
-
     def unlink(self):
-        lines_to_process = self.filtered(lambda l: l.move_id and l.move_id.state != 'draft' and l.analytic_distribution)
+        for move in self:
+            res_move = self.env['account.move'].search([('id', '=', move.move_id.id)])
 
-        for move in lines_to_process:
-            analytic_ids = [int(x) for x in move.analytic_distribution.keys()]
-            _logger.warning(f"🟢 Result {move} | analytic_account_id {analytic_ids}")
+            if res_move.state == 'draft':
+                continue
 
-            result = self.env['allss.balance.account.analytic'].search([
-                ('allss_account_id', '=', move.account_id.id),
-                ('allss_account_analytic_id', 'in', analytic_ids),
-                ('allss_date', '=', move.date)
-            ])
+            if move.analytic_distribution:
+        
+                analytic_ids = [int(x) for x in move.analytic_distribution.keys()]
 
-            for line in result:
-                data = {
-                    'allss_company_id': line.allss_company_id.id,
-                    'allss_account_id': line.allss_account_id.id,
-                    'allss_analytic_plan_id': line.allss_analytic_plan_id.id,
-                    'allss_account_analytic_id': line.allss_account_analytic_id.id,
-                    'allss_date': line.allss_date,
-                    'allss_debit': line.allss_debit,
-                    'allss_credit': line.allss_credit
-                }
+                result = self.env['allss.balance.account.analytic'].search(["&",
+                                                                    ('allss_account_id', '=', move.account_id.id),
+                                                                    ("allss_account_analytic_id", "in", analytic_ids),
+                                                                    ("allss_date", "=", move.date)])
+                _logger.warning(f"🟢 Result {result} | analytic_account_id {analytic_ids}")
 
-                update_vals(self, 3, move, data, line)
+                for line in result:
+                    data = {
+                        'allss_company_id': line.allss_company_id.id,
+                        'allss_account_id': line.allss_account_id.id,
+                        'allss_analytic_plan_id': line.allss_analytic_plan_id.id,
+                        'allss_account_analytic_id': line.allss_account_analytic_id.id,
+                        'allss_date': line.allss_date,
+                        'allss_debit': line.allss_debit,
+                        'allss_credit': line.allss_credit
+                    }
+
+                    update_vals(self, 3, move, data, line)
 
         res = super(AccountAnalytic, self).unlink()
         return res
-
 
 
 class AccountMoveAnalytic(models.Model):
