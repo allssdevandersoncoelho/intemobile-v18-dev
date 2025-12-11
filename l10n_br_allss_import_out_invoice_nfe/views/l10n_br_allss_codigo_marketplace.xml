@@ -1,29 +1,29 @@
 <?xml version="1.0"?>
 <odoo>
-    <record id="codigo_produto_marketplace_view_tree" model="ir.ui.view">
-        <field name="name">codigo.produto.marketplace.view.tree</field>
+    <record id="codigo_produto_marketplace_view_list" model="ir.ui.view">
+        <field name="name">codigo.produto.marketplace.view.list</field>
         <field name="model">allss.codigo.marketplace</field>
         <field name="arch" type="xml">
-            <tree string="Códigos Produtos Marketplace" editable="bottom">
+            <list string="Códigos Produtos Marketplace" editable="bottom">
                 <field name="name"/>
-            </tree>
+            </list>
         </field>
     </record>
 
     <record id="codigo_produto_marketplace_action" model="ir.actions.act_window">
         <field name="name">Códigos Produtos Marketplace</field>
         <field name="res_model">allss.codigo.marketplace</field>
-        <field name="view_id" ref="codigo_produto_marketplace_view_tree"/>
+        <field name="view_id" ref="codigo_produto_marketplace_view_list"/>
     </record>
 
-    <record id="codigo_produto_marketplace_tree_view" model="ir.ui.view">
+    <record id="codigo_produto_marketplace_list_view" model="ir.ui.view">
         <field name="name">codigo.produto.marketplace.form</field>
         <field name="model">allss.codigo.marketplace</field>
-        <field name="type">tree</field>
+        <field name="type">list</field>
         <field name="arch" type="xml" >
-            <tree string='Códigos Produtos Marketplace'>
+            <list string='Códigos Produtos Marketplace'>
                 <field name="name"/>
-            </tree>
+            </list>
         </field>
     </record>
 
