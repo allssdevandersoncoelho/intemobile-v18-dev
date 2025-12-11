@@ -214,92 +214,112 @@ class BalanceAccountStructure(models.Model):
 
 
 
-    def execute_sql(self):
-        # Limpa a tabela antes de inserir
-        self._cr.execute("DELETE FROM public.allss_balance_account_structure;")
+    # def execute_sql(self):
+    #     # Limpa a tabela antes de inserir
+    #     self._cr.execute("DELETE FROM public.allss_balance_account_structure;")
 
-        # sql = """
-        # WITH
+    #     sql = """
+    #     WITH
        
-        # base_sum AS (
-        #     SELECT
-        #         aml.company_id AS allss_company_id,
-        #         aml.account_id AS allss_account_id,
-        #         aml.date AS allss_date,
-        #         SUM(aml.debit) AS allss_debit,
-        #         SUM(aml.credit) AS allss_credit
-        #     FROM account_move_line aml
-        #     GROUP BY aml.company_id, aml.account_id, aml.date
-        # ),
+    #     base_sum AS (
+    #         SELECT
+    #             aml.company_id AS allss_company_id,
+    #             aml.account_id AS allss_account_id,
+    #             aml.date AS allss_date,
+    #             SUM(aml.debit) AS allss_debit,
+    #             SUM(aml.credit) AS allss_credit
+    #         FROM account_move_line aml
+    #         GROUP BY aml.company_id, aml.account_id, aml.date
+    #     ),
 
       
-        # mv_sum AS (
-        #     SELECT
-        #         bs.*,
-        #         SUM(bs.allss_debit - bs.allss_credit) OVER (
-        #             PARTITION BY bs.allss_company_id, bs.allss_account_id
-        #             ORDER BY bs.allss_date
-        #             ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-        #         ) AS allss_final_balance
-        #     FROM base_sum bs
-        # ),
+    #     mv_sum AS (
+    #         SELECT
+    #             bs.*,
+    #             SUM(bs.allss_debit - bs.allss_credit) OVER (
+    #                 PARTITION BY bs.allss_company_id, bs.allss_account_id
+    #                 ORDER BY bs.allss_date
+    #                 ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    #             ) AS allss_final_balance
+    #         FROM base_sum bs
+    #     ),
 
        
-        # with_prev AS (
-        #     SELECT
-        #         mv.*,
-        #         LAG(allss_final_balance, 1, 0) OVER (
-        #             PARTITION BY allss_company_id, allss_account_id
-        #             ORDER BY allss_date
-        #         ) AS allss_previous_balance
-        #     FROM mv_sum mv
-        # ),
+    #     with_prev AS (
+    #         SELECT
+    #             mv.*,
+    #             LAG(allss_final_balance, 1, 0) OVER (
+    #                 PARTITION BY allss_company_id, allss_account_id
+    #                 ORDER BY allss_date
+    #             ) AS allss_previous_balance
+    #         FROM mv_sum mv
+    #     ),
 
         
-        # account_groups AS (
-        #     SELECT
-        #         rel.account_account_id,
-        #         rel.allss_account_group_id
-        #     FROM account_account_allss_account_group_rel rel
-        # )
+    #     account_groups AS (
+    #         SELECT
+    #             rel.account_account_id,
+    #             rel.allss_account_group_id
+    #         FROM account_account_allss_account_group_rel rel
+    #     )
 
      
-        # INSERT INTO public.allss_balance_account_structure (
-        #     allss_company_id,
-        #     allss_account_id,
-        #     allss_group_id,
-        #     allss_parent_id_3,
-        #     allss_parent_id_4,
-        #     allss_parent_id_5,
-        #     allss_parent_id_6,
-        #     allss_date,
-        #     allss_debit,
-        #     allss_credit,
-        #     allss_previous_balance,
-        #     allss_final_balance
-        # )
-        # SELECT
-        #     wp.allss_company_id,
-        #     wp.allss_account_id,
-        #     ag.id AS allss_group_id,
-        #     ag3.id AS allss_parent_id_3,
-        #     ag4.id AS allss_parent_id_4,
-        #     ag5.id AS allss_parent_id_5,
-        #     ag6.id AS allss_parent_id_6,
-        #     wp.allss_date,
-        #     wp.allss_debit,
-        #     wp.allss_credit,
-        #     wp.allss_previous_balance,
-        #     wp.allss_final_balance
-        # FROM with_prev wp
-        # LEFT JOIN account_groups agr ON agr.account_account_id = wp.allss_account_id
-        # LEFT JOIN allss_account_group ag ON ag.id = agr.allss_account_group_id
-        # LEFT JOIN allss_account_group ag3 ON ag3.id = ag.allss_account_bridge_id
-        # LEFT JOIN allss_account_group ag4 ON ag4.id = ag3.allss_account_bridge_id
-        # LEFT JOIN allss_account_group ag5 ON ag5.id = ag4.allss_account_bridge_id
-        # LEFT JOIN allss_account_group ag6 ON ag6.id = ag5.allss_account_bridge_id
-        # ORDER BY wp.allss_company_id, wp.allss_account_id, wp.allss_date;
-        # """
+    #     INSERT INTO public.allss_balance_account_structure (
+    #         allss_company_id,
+    #         allss_account_id,
+    #         allss_group_id,
+    #         allss_parent_id_3,
+    #         allss_parent_id_4,
+    #         allss_parent_id_5,
+    #         allss_parent_id_6,
+    #         allss_date,
+    #         allss_debit,
+    #         allss_credit,
+    #         allss_previous_balance,
+    #         allss_final_balance
+    #     )
+    #     SELECT
+    #         wp.allss_company_id,
+    #         wp.allss_account_id,
+    #         ag.id AS allss_group_id,
+    #         ag3.id AS allss_parent_id_3,
+    #         ag4.id AS allss_parent_id_4,
+    #         ag5.id AS allss_parent_id_5,
+    #         ag6.id AS allss_parent_id_6,
+    #         wp.allss_date,
+    #         wp.allss_debit,
+    #         wp.allss_credit,
+    #         wp.allss_previous_balance,
+    #         wp.allss_final_balance
+    #     FROM with_prev wp
+    #     LEFT JOIN account_groups agr ON agr.account_account_id = wp.allss_account_id
+    #     LEFT JOIN allss_account_group ag ON ag.id = agr.allss_account_group_id
+    #     LEFT JOIN allss_account_group ag3 ON ag3.id = ag.allss_account_bridge_id
+    #     LEFT JOIN allss_account_group ag4 ON ag4.id = ag3.allss_account_bridge_id
+    #     LEFT JOIN allss_account_group ag5 ON ag5.id = ag4.allss_account_bridge_id
+    #     LEFT JOIN allss_account_group ag6 ON ag6.id = ag5.allss_account_bridge_id
+    #     ORDER BY wp.allss_company_id, wp.allss_account_id, wp.allss_date;
+    #     """
+
+    #     # Executa a query
+    #     self._cr.execute(sql)
+
+    #     # Atualiza sequência
+    #     self._cr.execute("""
+    #         BEGIN;
+    #             LOCK TABLE allss_balance_account_structure IN EXCLUSIVE MODE;
+    #             SELECT setval(
+    #                 'allss_balance_account_structure_id_seq',
+    #                 COALESCE((SELECT MAX(id)+1 FROM allss_balance_account_structure), 1),
+    #                 false
+    #             );
+    #         COMMIT;
+    #     """)
+
+
+
+    def execute_sql(self):
+        self._cr.execute("DELETE FROM allss_balance_account_structure;")
 
         sql = """
         WITH
@@ -313,16 +333,17 @@ class BalanceAccountStructure(models.Model):
             FROM account_move_line aml
             GROUP BY aml.company_id, aml.account_id, aml.date
         ),
+
         mv_sum AS (
             SELECT
                 bs.*,
                 SUM(bs.allss_debit - bs.allss_credit) OVER (
                     PARTITION BY bs.allss_company_id, bs.allss_account_id
                     ORDER BY bs.allss_date
-                    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
                 ) AS allss_final_balance
             FROM base_sum bs
         ),
+
         with_prev AS (
             SELECT
                 mv.*,
@@ -332,23 +353,25 @@ class BalanceAccountStructure(models.Model):
                 ) AS allss_previous_balance
             FROM mv_sum mv
         ),
+
+        -- Aqui corrigimos: group_id vem DIRETO de account_account
         account_groups AS (
             SELECT
-                acc.id AS account_account_id,
-                acc.group_id AS g1,
-                g1.parent_id AS g2,
-                g2.parent_id AS g3,
-                g3.parent_id AS g4,
-                g4.parent_id AS g5
+                acc.id AS account_id,
+                grp.id AS group_id,
+                grp.parent_id AS parent_3,
+                p3.parent_id AS parent_4,
+                p4.parent_id AS parent_5,
+                p5.parent_id AS parent_6
             FROM account_account acc
-            LEFT JOIN account_group g1 ON g1.id = acc.group_id
-            LEFT JOIN account_group g2 ON g2.id = g1.parent_id
-            LEFT JOIN account_group g3 ON g3.id = g2.parent_id
-            LEFT JOIN account_group g4 ON g4.id = g3.parent_id
-            LEFT JOIN account_group g5 ON g5.id = g4.parent_id
+            LEFT JOIN account_group grp ON grp.id = acc.group_id
+            LEFT JOIN account_group p3 ON p3.id = grp.parent_id
+            LEFT JOIN account_group p4 ON p4.id = p3.parent_id
+            LEFT JOIN account_group p5 ON p5.id = p4.parent_id
+            LEFT JOIN account_group p6 ON p6.id = p5.parent_id
         )
 
-        INSERT INTO public.allss_balance_account_structure (
+        INSERT INTO allss_balance_account_structure (
             allss_company_id,
             allss_account_id,
             allss_group_id,
@@ -365,43 +388,33 @@ class BalanceAccountStructure(models.Model):
         SELECT
             wp.allss_company_id,
             wp.allss_account_id,
-            ag.id   AS allss_group_id,
-            ag3.id  AS allss_parent_id_3,
-            ag4.id  AS allss_parent_id_4,
-            ag5.id  AS allss_parent_id_5,
-            ag6.id  AS allss_parent_id_6,
+            ag.group_id,
+            ag.parent_3,
+            ag.parent_4,
+            ag.parent_5,
+            ag.parent_6,
             wp.allss_date,
             wp.allss_debit,
             wp.allss_credit,
             wp.allss_previous_balance,
             wp.allss_final_balance
         FROM with_prev wp
-        LEFT JOIN account_groups agr ON agr.account_account_id = wp.allss_account_id
-        LEFT JOIN account_group ag  ON ag.id  = agr.g1
-        LEFT JOIN account_group ag3 ON ag3.id = agr.g2
-        LEFT JOIN account_group ag4 ON ag4.id = agr.g3
-        LEFT JOIN account_group ag5 ON ag5.id = agr.g4
-        LEFT JOIN account_group ag6 ON ag6.id = agr.g5
-        ORDER BY wp.allss_company_id, wp.allss_account_id, wp.allss_date;
+        LEFT JOIN account_groups ag
+            ON ag.account_id = wp.allss_account_id;
         """
 
-
-
-
-        # Executa a query
         self._cr.execute(sql)
 
-        # Atualiza sequência
+
         self._cr.execute("""
-            BEGIN;
-                LOCK TABLE allss_balance_account_structure IN EXCLUSIVE MODE;
-                SELECT setval(
-                    'allss_balance_account_structure_id_seq',
-                    COALESCE((SELECT MAX(id)+1 FROM allss_balance_account_structure), 1),
-                    false
-                );
-            COMMIT;
+            SELECT setval(
+                'allss_balance_account_structure_id_seq',
+                COALESCE((SELECT MAX(id) FROM allss_balance_account_structure), 1),
+                true
+            );
         """)
+
+
 
 
 
