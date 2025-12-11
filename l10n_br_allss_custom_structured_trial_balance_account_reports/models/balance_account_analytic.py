@@ -436,7 +436,7 @@ class BalanceAccountAnalytic(models.Model):
 
 
     def init_account_analytic(self):
-        account_analytic_id = int(self.account_analytic_def()[0] or 0)
+        account_analytic_id = int(account_analytic_def(self)[0] or 0)
         self._cr.execute(f"""
             SELECT DISTINCT
                 aml.company_id,
