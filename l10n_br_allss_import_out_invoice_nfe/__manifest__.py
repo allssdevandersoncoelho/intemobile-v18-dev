@@ -29,7 +29,7 @@
         'views/action.xml',
         'views/menu.xml',
         'views/account_move.xml',
-        'views/l10n_br_allss_codigo_marketplace.xml',
+        # 'views/l10n_br_allss_codigo_marketplace.xml',
 
         #security
         'security/ir.model.access.csv',
