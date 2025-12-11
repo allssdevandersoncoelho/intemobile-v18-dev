@@ -436,7 +436,7 @@ class BalanceAccountAnalytic(models.Model):
 
 
     def init_account_analytic(self):
-        account_analytic_id = account_analytic_def(self)[0]
+        account_analytic_id = int(self.account_analytic_def()[0] or 0)
         self._cr.execute(f"""
             SELECT DISTINCT
                 aml.company_id,
@@ -484,7 +484,7 @@ class BalanceAccountAnalytic(models.Model):
                 parent6 = parent5.parent_id if parent5 else False
 
                 vals = {
-                    'allss_company_id': company_id,
+                    'allss_company_id': company_id, 
                     'allss_account_id': account_id,
                     'allss_account_analytic_id': analytic_id,
                     'allss_analytic_plan_id': plan_id,
