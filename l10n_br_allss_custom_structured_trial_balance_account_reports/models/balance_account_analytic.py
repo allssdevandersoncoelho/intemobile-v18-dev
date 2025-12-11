@@ -115,7 +115,7 @@ class BalanceAccountAnalytic(models.Model):
         # Limpa a tabela antes de inserir
         self._cr.execute("DELETE FROM public.allss_balance_account_analytic;")
         
-        account_analytic_id = account_analytic_def(self)[0]
+        account_analytic_id = account_analytic_def(self)[0] or None
 
         sql = f"""
         WITH
@@ -140,7 +140,7 @@ class BalanceAccountAnalytic(models.Model):
             SELECT
                 aml.company_id,
                 aml.account_id,
-                {account_analytic_id}::int AS analytic_account_id,
+                {account_analytic_id if account_analytic_id else 'NULL'}::int AS analytic_account_id,
                 1.0::numeric AS weight,
                 aml.debit,
                 aml.credit,
@@ -292,7 +292,9 @@ class BalanceAccountAnalytic(models.Model):
 
         for row in self._cr.fetchall():
             company_id, account_id, analytic_id, plan_id, month_date = row
-            analytic_id = analytic_id or account_analytic_id
+            # analytic_id = analytic_id or account_analytic_id
+            if not analytic_id:
+                analytic_id = account_analytic_id if account_analytic_id else None
 
             existing = self.env['allss.balance.account.analytic'].search([
                 ('allss_company_id', '=', company_id),
