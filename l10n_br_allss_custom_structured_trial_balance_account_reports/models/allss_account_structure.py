@@ -172,23 +172,12 @@ def update_vals_structure(self, option, vals, data, res):
 class AccountMoveLine(models.Model):
     _inherit = "account.move.line"
 
-    allss_group_id = fields.Many2one(
-        'account.group',
-        compute='_compute_allss_group_id',
-        store=True,
-        index=True
-    )
+    allss_group_id = fields.Many2one(related='account_id.group_id', store=True, index=True)
     _allss_group_id = fields.Many2one(related='account_id.group_id', store=True, index=True)
     _allss_parent_id_3 = fields.Many2one(related='_allss_group_id.parent_id', store=True, index=True)
     _allss_parent_id_4 = fields.Many2one(related='_allss_parent_id_3.parent_id', store=True, index=True)
     _allss_parent_id_5 = fields.Many2one(related='_allss_parent_id_4.parent_id', store=True, index=True)
     _allss_parent_id_6 = fields.Many2one(related='_allss_parent_id_5.parent_id', store=True, index=True)
-
-
-    @api.depends('account_id', 'account_id.group_id')
-    def _compute_allss_group_id(self):
-        for line in self:
-            line.allss_group_id = line.account_id.group_id
 
 
     # FUNÇÃO PARA O CALCULO GERAL DOS SALDOS
