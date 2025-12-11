@@ -24,11 +24,11 @@ def account_analytic_def(self):
     )
 
     if not analytic_code:
-        return [False, False]
+        return [None, None]
 
     analytic = self.env['account.analytic.account'].search([('code', '=', analytic_code)], limit=1)
 
     if not analytic:
-        return [False, False]
+        return [None, None]
 
-    return [analytic.id, analytic.plan_id.id if analytic.plan_id else False]
+    return [analytic.id, analytic.plan_id.id if analytic.plan_id else None]
