@@ -32,7 +32,7 @@
         # 'views/l10n_br_allss_codigo_marketplace.xml',
 
         #security
-        'security/ir.model.access.csv',
+        # 'security/ir.model.access.csv',
     ],
     'installable': True,
     'auto_install': False,
