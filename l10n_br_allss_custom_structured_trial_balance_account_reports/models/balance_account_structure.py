@@ -77,8 +77,8 @@ class BalanceAccountStructure(models.Model):
     allss_date = fields.Date("Data", store=True, index=True)
 
     allss_previous_balance = fields.Float("Saldo Anterior", store=True, index=True, digits=dp.get_precision('Account Balance'))
-    allss_debit = fields.Float("Débito", store=True, index=True, digits=dp.get_precision('Account Balance'))
-    allss_credit = fields.Float("Crédito", store=True, index=True, digits=dp.get_precision('Account Balance'))
+    allss_debit = fields.Float("Débito", store=True, index=True, digits=dp.get_precision('Account Balance'), group_operator="sum")
+    allss_credit = fields.Float("Crédito", store=True, index=True, digits=dp.get_precision('Account Balance'), group_operator="sum")
     allss_final_balance = fields.Float("Saldo Atual", store=True, index=True, digits=dp.get_precision('Account Balance'))
 
     
