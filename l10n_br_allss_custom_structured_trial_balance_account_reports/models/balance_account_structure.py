@@ -434,15 +434,14 @@ class BalanceAccountStructure(models.Model):
         self._cr.execute("DELETE FROM public.allss_balance_account_structure;")
 
         sql = """
-        WITH
-
+            WITH
         base_sum AS (
             SELECT
-                aml.company_id AS allss_company_id,
-                aml.account_id AS allss_account_id,
-                DATE_TRUNC('month', aml.date)::date AS allss_date,
-                SUM(aml.debit)  AS allss_debit,
-                SUM(aml.credit) AS allss_credit
+                aml.company_id,
+                aml.account_id,
+                DATE_TRUNC('month', aml.date)::date AS month_date,
+                SUM(aml.debit)  AS debit,
+                SUM(aml.credit) AS credit
             FROM account_move_line aml
             GROUP BY
                 aml.company_id,
@@ -450,72 +449,53 @@ class BalanceAccountStructure(models.Model):
                 DATE_TRUNC('month', aml.date)
         ),
 
-        mv_sum AS (
+        account_tree AS (
             SELECT
-                bs.*,
-                SUM(bs.allss_debit - bs.allss_credit) OVER (
-                    PARTITION BY bs.allss_company_id, bs.allss_account_id
-                    ORDER BY bs.allss_date
-                    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-                ) AS allss_final_balance
-            FROM base_sum bs
-        ),
+                acc.id AS account_id,
 
-        with_prev AS (
-            SELECT
-                mv.*,
-                LAG(allss_final_balance, 1, 0) OVER (
-                    PARTITION BY allss_company_id, allss_account_id
-                    ORDER BY allss_date
-                ) AS allss_previous_balance
-            FROM mv_sum mv
-        ),
+                g1.id AS lvl_5,
+                g2.id AS lvl_4,
+                g3.id AS lvl_3,
+                g4.id AS lvl_2,
+                g5.id AS lvl_1
 
-        account_groups AS (
-            SELECT
-                rel.account_account_id,
-                rel.allss_account_group_id
-            FROM account_account_allss_account_group_rel rel
+            FROM account_account acc
+            LEFT JOIN account_group g1 ON g1.id = acc.group_id
+            LEFT JOIN account_group g2 ON g2.id = g1.parent_id
+            LEFT JOIN account_group g3 ON g3.id = g2.parent_id
+            LEFT JOIN account_group g4 ON g4.id = g3.parent_id
+            LEFT JOIN account_group g5 ON g5.id = g4.parent_id
         )
 
-        INSERT INTO public.allss_balance_account_structure (
-            allss_company_id,
-            allss_account_id,
-            allss_group_id,
-            allss_parent_id_3,
-            allss_parent_id_4,
-            allss_parent_id_5,
-            allss_parent_id_6,
-            allss_date,
-            allss_debit,
-            allss_credit,
-            allss_previous_balance,
-            allss_final_balance
-        )
         SELECT
-            wp.allss_company_id,
-            wp.allss_account_id,
-            ag.id  AS allss_group_id,
-            ag3.id AS allss_parent_id_3,
-            ag4.id AS allss_parent_id_4,
-            ag5.id AS allss_parent_id_5,
-            ag6.id AS allss_parent_id_6,
-            wp.allss_date,
-            wp.allss_debit,
-            wp.allss_credit,
-            wp.allss_previous_balance,
-            wp.allss_final_balance
-        FROM with_prev wp
-        LEFT JOIN account_groups agr ON agr.account_account_id = wp.allss_account_id
-        LEFT JOIN allss_account_group ag  ON ag.id  = agr.allss_account_group_id
-        LEFT JOIN allss_account_group ag3 ON ag3.id = ag.allss_account_bridge_id
-        LEFT JOIN allss_account_group ag4 ON ag4.id = ag3.allss_account_bridge_id
-        LEFT JOIN allss_account_group ag5 ON ag5.id = ag4.allss_account_bridge_id
-        LEFT JOIN allss_account_group ag6 ON ag6.id = ag5.allss_account_bridge_id
+            bs.company_id,
+            
+            CASE %(nivel)s
+                WHEN 1 THEN at.lvl_1
+                WHEN 2 THEN at.lvl_2
+                WHEN 3 THEN at.lvl_3
+                WHEN 4 THEN at.lvl_4
+                WHEN 5 THEN at.lvl_5
+            END AS group_id,
+
+            bs.month_date,
+
+            SUM(bs.debit)  AS total_debit,
+            SUM(bs.credit) AS total_credit,
+            SUM(bs.debit - bs.credit) AS total_balance
+
+        FROM base_sum bs
+        JOIN account_tree at ON at.account_id = bs.account_id
+
+        GROUP BY
+            bs.company_id,
+            group_id,
+            bs.month_date
+
         ORDER BY
-            wp.allss_company_id,
-            wp.allss_account_id,
-            wp.allss_date;
+            bs.company_id,
+            group_id;
+
         """
 
         self._cr.execute(sql)
