@@ -460,6 +460,39 @@ class BalanceAccountStructure(models.Model):
         self._cr.execute("DELETE FROM public.allss_balance_account_structure;")
 
         sql = """
+            WITH base_data AS (
+                SELECT
+                    bas.allss_company_id,
+                    bas.allss_account_id,
+                    bas.allss_group_id,
+                    bas.allss_parent_id_3,
+                    bas.allss_parent_id_4,
+                    bas.allss_parent_id_5,
+                    bas.allss_parent_id_6,
+                    bas.allss_date,
+                    bas.allss_debit,
+                    bas.allss_credit,
+                    bas.allss_previous_balance,
+                    -- Calculando a primeira ocorrência do saldo anterior
+                    ROW_NUMBER() OVER (
+                        PARTITION BY bas.allss_company_id, bas.allss_account_id
+                        ORDER BY bas.allss_date
+                    ) AS row_num
+                FROM allss_balance_account_structure bas
+            ),
+            
+            calculated_data AS (
+                SELECT
+                    b.*,
+                    -- Apenas o primeiro saldo anterior é considerado
+                    CASE
+                        WHEN b.row_num = 1 THEN b.allss_previous_balance
+                        ELSE 0
+                    END AS allss_previous_balance_once
+                FROM base_data b
+            )
+
+            -- Inserção final considerando os dados calculados corretamente
             INSERT INTO public.allss_balance_account_structure (
                 allss_company_id,
                 allss_account_id,
@@ -488,29 +521,15 @@ class BalanceAccountStructure(models.Model):
                 SUM(t.allss_debit)  AS allss_debit,
                 SUM(t.allss_credit) AS allss_credit,
 
-                -- Saldo anterior entra apenas uma vez por conta
+                -- Somando saldo anterior uma vez (apenas para o primeiro)
                 SUM(t.allss_previous_balance_once) AS allss_previous_balance,
 
-                -- Saldo final = saldo anterior + débitos - créditos
+                -- Calculando o saldo final (salvo anterior + débitos - créditos)
                 SUM(t.allss_previous_balance_once)
                 + SUM(t.allss_debit)
                 - SUM(t.allss_credit) AS allss_final_balance
 
-            FROM (
-                SELECT
-                    bas.*,
-
-                    CASE
-                        WHEN ROW_NUMBER() OVER (
-                            PARTITION BY bas.allss_company_id, bas.allss_account_id
-                            ORDER BY bas.allss_date
-                        ) = 1
-                        THEN bas.allss_previous_balance
-                        ELSE 0
-                    END AS allss_previous_balance_once
-
-                FROM allss_balance_account_structure bas
-            ) t
+            FROM calculated_data t
 
             GROUP BY
                 t.allss_company_id,
@@ -527,9 +546,10 @@ class BalanceAccountStructure(models.Model):
                 t.allss_date
         """
 
+        # Executa a consulta
         self._cr.execute(sql)
 
-        # Ajusta a sequência
+        # Atualiza a sequência
         self._cr.execute("""
             BEGIN;
                 LOCK TABLE allss_balance_account_structure IN EXCLUSIVE MODE;
@@ -540,6 +560,7 @@ class BalanceAccountStructure(models.Model):
                 );
             COMMIT;
         """)
+
 
 
 
