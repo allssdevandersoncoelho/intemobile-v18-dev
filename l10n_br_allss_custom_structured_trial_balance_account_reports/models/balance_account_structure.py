@@ -183,14 +183,10 @@ class BalanceAccountStructure(models.Model):
 
 
     def open_document(self, options=None, params=None):
-        
-
         domain = ['&',
                   ('date', '=', self.allss_date),
                   ('account_id', '=', self.allss_account_id.id)
                   ]
-
-
         dict_ret = {'type': 'ir.actions.act_window',
                     'name': f'Balancete Estruturado - Conta: {self.allss_account_id.id} - Data: {self.allss_date}',
                     'res_model': 'account.move.line',
@@ -198,8 +194,6 @@ class BalanceAccountStructure(models.Model):
                     'view_mode': 'list,pivot,kanban,graph,form',
                     'domain': domain
                     }
-
-
         return dict_ret
 
 
@@ -461,84 +455,99 @@ class BalanceAccountStructure(models.Model):
     #     """)
 
 
-    def execute_sql(self):
-        # Limpa a tabela antes de inserir
+    def execute_sql(self, nivel=3):
+        nivel_map = {
+            1: 'allss_parent_id_6',  # 1º nível
+            2: 'allss_parent_id_5',  # 2º nível
+            3: 'allss_parent_id_4',  # 3º nível
+            4: 'allss_parent_id_3',  # 4º nível
+            5: 'allss_group_id',     # 5º nível
+        }
+
+        group_field = nivel_map.get(nivel)
+        if not group_field:
+            raise ValueError('Nível inválido. Use valores entre 1 e 5.')
+
+        # Limpa a tabela
         self._cr.execute("DELETE FROM public.allss_balance_account_structure;")
 
-        sql = """
-            WITH
-        base_sum AS (
+        sql = f"""
+            INSERT INTO public.allss_balance_account_structure (
+                allss_company_id,
+                allss_account_id,
+                allss_group_id,
+                allss_parent_id_3,
+                allss_parent_id_4,
+                allss_parent_id_5,
+                allss_parent_id_6,
+                allss_date,
+                allss_debit,
+                allss_credit,
+                allss_previous_balance,
+                allss_final_balance
+            )
             SELECT
-                aml.company_id,
-                aml.account_id,
-                DATE_TRUNC('month', aml.date)::date AS month_date,
-                SUM(aml.debit)  AS debit,
-                SUM(aml.credit) AS credit
-            FROM account_move_line aml
+                bas.allss_company_id,
+                bas.allss_account_id,
+                bas.allss_group_id,
+                bas.allss_parent_id_3,
+                bas.allss_parent_id_4,
+                bas.allss_parent_id_5,
+                bas.allss_parent_id_6,
+                bas.allss_date,
+
+                -- Débito e crédito somam normalmente
+                SUM(bas.allss_debit)  AS allss_debit,
+                SUM(bas.allss_credit) AS allss_credit,
+
+                -- Saldo anterior: apenas 1 vez por conta
+                SUM(
+                    CASE
+                        WHEN ROW_NUMBER() OVER (
+                            PARTITION BY bas.allss_company_id, bas.allss_account_id
+                            ORDER BY bas.allss_date
+                        ) = 1
+                        THEN bas.allss_previous_balance
+                        ELSE 0
+                    END
+                ) AS allss_previous_balance,
+
+                -- Saldo final igual v12
+                SUM(
+                    CASE
+                        WHEN ROW_NUMBER() OVER (
+                            PARTITION BY bas.allss_company_id, bas.allss_account_id
+                            ORDER BY bas.allss_date
+                        ) = 1
+                        THEN bas.allss_previous_balance
+                        ELSE 0
+                    END
+                )
+                + SUM(bas.allss_debit)
+                - SUM(bas.allss_credit) AS allss_final_balance
+
+            FROM allss_balance_account_structure bas
+
             GROUP BY
-                aml.company_id,
-                aml.account_id,
-                DATE_TRUNC('month', aml.date)
-        ),
-
-        account_tree AS (
-            SELECT
-                acc.id AS account_id,
-
-                g1.id AS lvl_5,
-                g2.id AS lvl_4,
-                g3.id AS lvl_3,
-                g4.id AS lvl_2,
-                g5.id AS lvl_1
-
-            FROM account_account acc
-            LEFT JOIN account_group g1 ON g1.id = acc.group_id
-            LEFT JOIN account_group g2 ON g2.id = g1.parent_id
-            LEFT JOIN account_group g3 ON g3.id = g2.parent_id
-            LEFT JOIN account_group g4 ON g4.id = g3.parent_id
-            LEFT JOIN account_group g5 ON g5.id = g4.parent_id
-        )
-
-        SELECT
-            bs.company_id,
-
-            CASE %(nivel)s
-                WHEN 1 THEN at.lvl_1
-                WHEN 2 THEN at.lvl_2
-                WHEN 3 THEN at.lvl_3
-                WHEN 4 THEN at.lvl_4
-                WHEN 5 THEN at.lvl_5
-            END AS group_id,
-
-            bs.month_date,
-
-            SUM(bs.debit)  AS total_debit,
-            SUM(bs.credit) AS total_credit,
-            SUM(bs.debit - bs.credit) AS total_balance
-
-        FROM base_sum bs
-        JOIN account_tree at ON at.account_id = bs.account_id
-
-        GROUP BY
-            bs.company_id,
-            group_id,
-            bs.month_date
-
-        ORDER BY
-            bs.company_id,
-            group_id;
-
+                bas.allss_company_id,
+                bas.allss_account_id,
+                bas.allss_group_id,
+                bas.allss_parent_id_3,
+                bas.allss_parent_id_4,
+                bas.allss_parent_id_5,
+                bas.allss_parent_id_6,
+                bas.allss_date
         """
 
         self._cr.execute(sql)
 
-        # Atualiza sequência
+        # Ajusta a sequência
         self._cr.execute("""
             BEGIN;
                 LOCK TABLE allss_balance_account_structure IN EXCLUSIVE MODE;
                 SELECT setval(
                     'allss_balance_account_structure_id_seq',
-                    COALESCE((SELECT MAX(id) + 1 FROM allss_balance_account_structure), 1),
+                    COALESCE((SELECT MAX(id)+1 FROM allss_balance_account_structure), 1),
                     false
                 );
             COMMIT;
