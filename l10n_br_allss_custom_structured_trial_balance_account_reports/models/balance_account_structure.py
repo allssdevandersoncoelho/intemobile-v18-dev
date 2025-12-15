@@ -113,64 +113,98 @@ class BalanceAccountStructure(models.Model):
     #     return result
 
 
+    # @api.model
+    # def read_group(self, domain, fields, groupby,
+    #             offset=0, limit=None, orderby=False, lazy=True):
+
+    #     sql_fields = ['allss_debit', 'allss_credit']
+
+    #     result = super(BalanceAccountStructure, self).read_group(
+    #         domain=domain,
+    #         fields=sql_fields,
+    #         groupby=groupby,
+    #         offset=offset,
+    #         limit=limit,
+    #         orderby=orderby,
+    #         lazy=lazy
+    #     )
+
+    #     if not result:
+    #         return result
+
+    #     for line in result:
+    #         dom = line.get('__domain')
+    #         if not dom:
+    #             continue
+
+    #         records = self.search(dom)
+
+    #         if not records:
+    #             line.update({
+    #                 'allss_previous_balance': 0.0,
+    #                 'allss_final_balance': 0.0,
+    #             })
+    #             continue
+
+         
+    #         self.env.cr.execute("""
+    #             SELECT COALESCE(SUM(allss_previous_balance),0)
+    #             FROM (
+    #                 SELECT DISTINCT ON (allss_company_id, allss_account_id)
+    #                     allss_previous_balance
+    #                 FROM allss_balance_account_structure
+    #                 WHERE id IN %s
+    #                 ORDER BY allss_company_id, allss_account_id, allss_date
+    #             ) s
+    #         """, (tuple(records.ids),))
+
+    #         previous_balance = self.env.cr.fetchone()[0] or 0.0
+
+      
+    #         debit = sum(records.mapped('allss_debit'))
+    #         credit = sum(records.mapped('allss_credit'))
+
+     
+    #         line['allss_previous_balance'] = previous_balance
+    #         line['allss_debit'] = debit
+    #         line['allss_credit'] = credit
+    #         line['allss_final_balance'] = previous_balance + debit - credit
+
+    #     return result
+
+
     @api.model
     def read_group(self, domain, fields, groupby,
                 offset=0, limit=None, orderby=False, lazy=True):
 
-        sql_fields = ['allss_debit', 'allss_credit']
-
-        result = super(BalanceAccountStructure, self).read_group(
-            domain=domain,
-            fields=sql_fields,
-            groupby=groupby,
-            offset=offset,
-            limit=limit,
-            orderby=orderby,
-            lazy=lazy
+        res = super().read_group(
+            domain, fields, groupby,
+            offset=offset, limit=limit,
+            orderby=orderby, lazy=lazy
         )
 
-        if not result:
-            return result
-
-        for line in result:
-            dom = line.get('__domain')
-            if not dom:
+        for line in res:
+            if '__domain' not in line:
                 continue
 
-            records = self.search(dom)
+            records = self.search(line['__domain'], order='allss_date, id')
 
             if not records:
-                line.update({
-                    'allss_previous_balance': 0.0,
-                    'allss_final_balance': 0.0,
-                })
                 continue
 
-         
-            self.env.cr.execute("""
-                SELECT COALESCE(SUM(allss_previous_balance),0)
-                FROM (
-                    SELECT DISTINCT ON (allss_company_id, allss_account_id)
-                        allss_previous_balance
-                    FROM allss_balance_account_structure
-                    WHERE id IN %s
-                    ORDER BY allss_company_id, allss_account_id, allss_date
-                ) s
-            """, (tuple(records.ids),))
+            # saldo anterior = primeiro registro
+            previous = records[0].allss_previous_balance
 
-            previous_balance = self.env.cr.fetchone()[0] or 0.0
-
-      
             debit = sum(records.mapped('allss_debit'))
             credit = sum(records.mapped('allss_credit'))
 
-     
-            line['allss_previous_balance'] = previous_balance
+            line['allss_previous_balance'] = previous
             line['allss_debit'] = debit
             line['allss_credit'] = credit
-            line['allss_final_balance'] = previous_balance + debit - credit
+            line['allss_final_balance'] = previous + debit - credit
 
-        return result
+        return res
+
 
 
 
