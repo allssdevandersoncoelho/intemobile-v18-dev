@@ -115,31 +115,63 @@ class BalanceAccountStructure(models.Model):
 
     @api.model
     def read_group(self, domain, fields, groupby,
-        offset=0, limit=None, orderby=False, lazy=True):
-        required_fields = {'allss_debit', 'allss_credit'}
-        fields = list(set(fields or []) | required_fields)
+                offset=0, limit=None, orderby=False, lazy=True):
 
-        result = super().read_group(
-            domain,
-            fields,
-            groupby,
+        sql_fields = ['allss_debit', 'allss_credit']
+
+        result = super(BalanceAccountStructure, self).read_group(
+            domain=domain,
+            fields=sql_fields,
+            groupby=groupby,
             offset=offset,
             limit=limit,
             orderby=orderby,
-            lazy=lazy,
+            lazy=lazy
         )
 
         if not result:
             return result
 
         for line in result:
-            debit = line.get('allss_debit') or 0.0
-            credit = line.get('allss_credit') or 0.0
-            prev = line.get('allss_previous_balance') or 0.0
+            dom = line.get('__domain')
+            if not dom:
+                continue
 
-            line['allss_final_balance'] = prev + debit - credit
+            records = self.search(dom)
+
+            if not records:
+                line.update({
+                    'allss_previous_balance': 0.0,
+                    'allss_final_balance': 0.0,
+                })
+                continue
+
+         
+            self.env.cr.execute("""
+                SELECT COALESCE(SUM(allss_previous_balance),0)
+                FROM (
+                    SELECT DISTINCT ON (allss_company_id, allss_account_id)
+                        allss_previous_balance
+                    FROM allss_balance_account_structure
+                    WHERE id IN %s
+                    ORDER BY allss_company_id, allss_account_id, allss_date
+                ) s
+            """, (tuple(records.ids),))
+
+            previous_balance = self.env.cr.fetchone()[0] or 0.0
+
+      
+            debit = sum(records.mapped('allss_debit'))
+            credit = sum(records.mapped('allss_credit'))
+
+     
+            line['allss_previous_balance'] = previous_balance
+            line['allss_debit'] = debit
+            line['allss_credit'] = credit
+            line['allss_final_balance'] = previous_balance + debit - credit
 
         return result
+
 
 
 
@@ -469,7 +501,7 @@ class BalanceAccountStructure(models.Model):
 
         SELECT
             bs.company_id,
-            
+
             CASE %(nivel)s
                 WHEN 1 THEN at.lvl_1
                 WHEN 2 THEN at.lvl_2
