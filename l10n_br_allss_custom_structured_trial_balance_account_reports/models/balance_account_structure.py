@@ -455,23 +455,11 @@ class BalanceAccountStructure(models.Model):
     #     """)
 
 
-    def execute_sql(self, nivel=3):
-        nivel_map = {
-            1: 'allss_parent_id_6',  # 1º nível
-            2: 'allss_parent_id_5',  # 2º nível
-            3: 'allss_parent_id_4',  # 3º nível
-            4: 'allss_parent_id_3',  # 4º nível
-            5: 'allss_group_id',     # 5º nível
-        }
-
-        group_field = nivel_map.get(nivel)
-        if not group_field:
-            raise ValueError('Nível inválido. Use valores entre 1 e 5.')
-
+    def execute_sql(self):
         # Limpa a tabela
         self._cr.execute("DELETE FROM public.allss_balance_account_structure;")
 
-        sql = f"""
+        sql = """
             INSERT INTO public.allss_balance_account_structure (
                 allss_company_id,
                 allss_account_id,
@@ -487,21 +475,31 @@ class BalanceAccountStructure(models.Model):
                 allss_final_balance
             )
             SELECT
-                bas.allss_company_id,
-                bas.allss_account_id,
-                bas.allss_group_id,
-                bas.allss_parent_id_3,
-                bas.allss_parent_id_4,
-                bas.allss_parent_id_5,
-                bas.allss_parent_id_6,
-                bas.allss_date,
+                t.allss_company_id,
+                t.allss_account_id,
+                t.allss_group_id,
+                t.allss_parent_id_3,
+                t.allss_parent_id_4,
+                t.allss_parent_id_5,
+                t.allss_parent_id_6,
+                t.allss_date,
 
                 -- Débito e crédito somam normalmente
-                SUM(bas.allss_debit)  AS allss_debit,
-                SUM(bas.allss_credit) AS allss_credit,
+                SUM(t.allss_debit)  AS allss_debit,
+                SUM(t.allss_credit) AS allss_credit,
 
-                -- Saldo anterior: apenas 1 vez por conta
-                SUM(
+                -- Saldo anterior entra apenas uma vez por conta
+                SUM(t.allss_previous_balance_once) AS allss_previous_balance,
+
+                -- Saldo final = saldo anterior + débitos - créditos
+                SUM(t.allss_previous_balance_once)
+                + SUM(t.allss_debit)
+                - SUM(t.allss_credit) AS allss_final_balance
+
+            FROM (
+                SELECT
+                    bas.*,
+
                     CASE
                         WHEN ROW_NUMBER() OVER (
                             PARTITION BY bas.allss_company_id, bas.allss_account_id
@@ -509,34 +507,24 @@ class BalanceAccountStructure(models.Model):
                         ) = 1
                         THEN bas.allss_previous_balance
                         ELSE 0
-                    END
-                ) AS allss_previous_balance,
+                    END AS allss_previous_balance_once
 
-                -- Saldo final igual v12
-                SUM(
-                    CASE
-                        WHEN ROW_NUMBER() OVER (
-                            PARTITION BY bas.allss_company_id, bas.allss_account_id
-                            ORDER BY bas.allss_date
-                        ) = 1
-                        THEN bas.allss_previous_balance
-                        ELSE 0
-                    END
-                )
-                + SUM(bas.allss_debit)
-                - SUM(bas.allss_credit) AS allss_final_balance
-
-            FROM allss_balance_account_structure bas
+                FROM allss_balance_account_structure bas
+            ) t
 
             GROUP BY
-                bas.allss_company_id,
-                bas.allss_account_id,
-                bas.allss_group_id,
-                bas.allss_parent_id_3,
-                bas.allss_parent_id_4,
-                bas.allss_parent_id_5,
-                bas.allss_parent_id_6,
-                bas.allss_date
+                t.allss_company_id,
+                t.allss_account_id,
+                t.allss_group_id,
+                t.allss_parent_id_3,
+                t.allss_parent_id_4,
+                t.allss_parent_id_5,
+                t.allss_parent_id_6,
+                t.allss_date
+            ORDER BY
+                t.allss_company_id,
+                t.allss_account_id,
+                t.allss_date
         """
 
         self._cr.execute(sql)
@@ -552,6 +540,7 @@ class BalanceAccountStructure(models.Model):
                 );
             COMMIT;
         """)
+
 
 
 
