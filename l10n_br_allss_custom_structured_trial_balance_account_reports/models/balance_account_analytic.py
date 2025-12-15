@@ -110,7 +110,6 @@ class BalanceAccountAnalytic(models.Model):
 
 
 
-
     # def execute_sql(self):
     #     # Limpa a tabela antes de inserir
     #     self._cr.execute("DELETE FROM public.allss_balance_account_analytic;")

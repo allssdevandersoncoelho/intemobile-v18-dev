@@ -144,25 +144,90 @@ class BalanceAccountStructure(models.Model):
 
     
 
+    # def init_account_structure(self):
+    #     # Busca todas as combinações de company, account e grupos para o mês atual
+    #     self._cr.execute("""
+    #         SELECT DISTINCT 
+    #             mov.company_id,
+    #             mov.account_id,
+    #             date_trunc('month', gs)::date AS allss_date,
+    #             mov._allss_group_id,
+    #             mov._allss_parent_id_6,
+    #             mov._allss_parent_id_5,
+    #             mov._allss_parent_id_4,
+    #             mov._allss_parent_id_3
+    #         FROM (
+    #             SELECT company_id, account_id, MIN(date) AS date,
+    #                 _allss_group_id, _allss_parent_id_6, _allss_parent_id_5,
+    #                 _allss_parent_id_4, _allss_parent_id_3
+    #             FROM account_move_line
+    #             GROUP BY company_id, account_id, _allss_group_id, _allss_parent_id_6,
+    #                     _allss_parent_id_5, _allss_parent_id_4, _allss_parent_id_3
+    #         ) mov
+    #         INNER JOIN generate_series(
+    #             (SELECT MIN(date) FROM account_move_line),
+    #             CURRENT_DATE + INTERVAL '31 days',
+    #             INTERVAL '1 month'
+    #         ) gs ON gs >= mov.date
+    #         WHERE DATE_PART('month', gs) = DATE_PART('month', CURRENT_DATE)
+    #         AND DATE_PART('year', gs) = DATE_PART('year', CURRENT_DATE)
+    #     """)
+
+    #     for row in self._cr.fetchall():
+    #         company_id, account_id, allss_date, group_id, p6, p5, p4, p3 = row
+
+    #         # Verifica se já existe registro
+    #         result = self.env['allss.balance.account.structure'].search([
+    #             ("allss_company_id", '=', company_id),
+    #             ("allss_account_id", '=', account_id),
+    #             ("allss_date", '=', allss_date)
+    #         ], order='allss_company_id, allss_account_id, allss_date')
+
+    #         if not result:
+    #             # Busca saldo anterior
+    #             res = self.env['allss.balance.account.structure'].search([
+    #                 ("allss_company_id", '=', company_id),
+    #                 ("allss_account_id", '=', account_id),
+    #                 ("allss_date", '<=', allss_date),
+    #             ], limit=1, order='allss_date desc, id desc')
+
+    #             data = {
+    #                 'allss_company_id': company_id,
+    #                 'allss_account_id': account_id,
+    #                 'allss_date': allss_date,
+    #                 'allss_debit': 0.0,
+    #                 'allss_credit': 0.0,
+    #                 'allss_group_id': group_id,
+    #                 'allss_parent_id_6': p6,
+    #                 'allss_parent_id_5': p5,
+    #                 'allss_parent_id_4': p4,
+    #                 'allss_parent_id_3': p3,
+    #                 'allss_previous_balance': res.allss_final_balance if res else 0.0,
+    #                 'allss_final_balance': res.allss_final_balance if res else 0.0,
+    #             }
+
+    #             # Cria registro do balancete do mês atual
+    #             self.env['allss.balance.account.structure'].create(data)
+    #             self.env.cr.commit()
+
+    #     return True
+
+
     def init_account_structure(self):
-        # Busca todas as combinações de company, account e grupos para o mês atual
         self._cr.execute("""
             SELECT DISTINCT 
                 mov.company_id,
                 mov.account_id,
                 date_trunc('month', gs)::date AS allss_date,
-                mov._allss_group_id,
-                mov._allss_parent_id_6,
-                mov._allss_parent_id_5,
-                mov._allss_parent_id_4,
-                mov._allss_parent_id_3
+                mov._allss_group_id
             FROM (
-                SELECT company_id, account_id, MIN(date) AS date,
-                    _allss_group_id, _allss_parent_id_6, _allss_parent_id_5,
-                    _allss_parent_id_4, _allss_parent_id_3
+                SELECT
+                    company_id,
+                    account_id,
+                    MIN(date) AS date,
+                    _allss_group_id
                 FROM account_move_line
-                GROUP BY company_id, account_id, _allss_group_id, _allss_parent_id_6,
-                        _allss_parent_id_5, _allss_parent_id_4, _allss_parent_id_3
+                GROUP BY company_id, account_id, _allss_group_id
             ) mov
             INNER JOIN generate_series(
                 (SELECT MIN(date) FROM account_move_line),
@@ -174,41 +239,59 @@ class BalanceAccountStructure(models.Model):
         """)
 
         for row in self._cr.fetchall():
-            company_id, account_id, allss_date, group_id, p6, p5, p4, p3 = row
+            company_id, account_id, allss_date, group_id = row
 
             # Verifica se já existe registro
             result = self.env['allss.balance.account.structure'].search([
-                ("allss_company_id", '=', company_id),
-                ("allss_account_id", '=', account_id),
-                ("allss_date", '=', allss_date)
-            ], order='allss_company_id, allss_account_id, allss_date')
+                ('allss_company_id', '=', company_id),
+                ('allss_account_id', '=', account_id),
+                ('allss_date', '=', allss_date)
+            ], limit=1)
 
-            if not result:
-                # Busca saldo anterior
-                res = self.env['allss.balance.account.structure'].search([
-                    ("allss_company_id", '=', company_id),
-                    ("allss_account_id", '=', account_id),
-                    ("allss_date", '<=', allss_date),
-                ], limit=1, order='allss_date desc, id desc')
+            if result:
+                continue
 
-                data = {
-                    'allss_company_id': company_id,
-                    'allss_account_id': account_id,
-                    'allss_date': allss_date,
-                    'allss_debit': 0.0,
-                    'allss_credit': 0.0,
-                    'allss_group_id': group_id,
-                    'allss_parent_id_6': p6,
-                    'allss_parent_id_5': p5,
-                    'allss_parent_id_4': p4,
-                    'allss_parent_id_3': p3,
-                    'allss_previous_balance': res.allss_final_balance if res else 0.0,
-                    'allss_final_balance': res.allss_final_balance if res else 0.0,
-                }
+            # Busca saldo anterior
+            prev = self.env['allss.balance.account.structure'].search([
+                ('allss_company_id', '=', company_id),
+                ('allss_account_id', '=', account_id),
+                ('allss_date', '<', allss_date),
+            ], limit=1, order='allss_date desc')
 
-                # Cria registro do balancete do mês atual
-                self.env['allss.balance.account.structure'].create(data)
-                self.env.cr.commit()
+            group = self.env['account.group'].browse(group_id) if group_id else False
+
+            levels = []
+            current = group
+            while current:
+                levels.append(current)
+                current = current.parent_id
+
+            levels = list(reversed(levels))
+
+            parent_6 = levels[0].id if len(levels) > 0 else False  # 1º nível
+            parent_5 = levels[1].id if len(levels) > 1 else False  # 2º nível
+            parent_4 = levels[2].id if len(levels) > 2 else False  # 3º nível
+            parent_3 = levels[3].id if len(levels) > 3 else False  # 4º nível
+            group_5  = levels[4].id if len(levels) > 4 else False  # 5º nível
+
+            data = {
+                'allss_company_id': company_id,
+                'allss_account_id': account_id,
+                'allss_date': allss_date,
+                'allss_debit': 0.0,
+                'allss_credit': 0.0,
+                'allss_group_id': group_5,
+                'allss_parent_id_6': parent_6,
+                'allss_parent_id_5': parent_5,
+                'allss_parent_id_4': parent_4,
+                'allss_parent_id_3': parent_3,
+                'allss_previous_balance': prev.allss_final_balance if prev else 0.0,
+                'allss_final_balance': prev.allss_final_balance if prev else 0.0,
+            }
+
+            # Cria registro do balancete do mês atual
+            self.env['allss.balance.account.structure'].create(data)
+            self.env.cr.commit()
 
         return True
 
