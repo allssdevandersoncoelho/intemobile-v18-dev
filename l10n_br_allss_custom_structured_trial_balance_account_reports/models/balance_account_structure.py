@@ -77,38 +77,67 @@ class BalanceAccountStructure(models.Model):
     allss_date = fields.Date("Data", store=True, index=True)
 
     allss_previous_balance = fields.Float("Saldo Anterior", store=True, index=True, digits=dp.get_precision('Account Balance'))
-    allss_debit = fields.Float("Débito", store=True, index=True, digits=dp.get_precision('Account Balance'), group_operator="sum")
-    allss_credit = fields.Float("Crédito", store=True, index=True, digits=dp.get_precision('Account Balance'), group_operator="sum")
+    allss_debit = fields.Float("Débito", store=True, index=True, digits=dp.get_precision('Account Balance'))
+    allss_credit = fields.Float("Crédito", store=True, index=True, digits=dp.get_precision('Account Balance'))
     allss_final_balance = fields.Float("Saldo Atual", store=True, index=True, digits=dp.get_precision('Account Balance'))
 
     
 
 
-    @api.model
-    def read_group(self, domain, fields, groupby, offset=0, limit=None, orderby=False, lazy=True):
-        fields_list = ['allss_previous_balance', 'allss_debit', 'allss_credit', 'allss_final_balance']
-        result = super(BalanceAccountStructure, self).read_group(
-            domain=domain, fields=fields_list, groupby=groupby, offset=offset,
-            limit=limit, orderby=orderby, lazy=lazy)
+    # @api.model
+    # def read_group(self, domain, fields, groupby, offset=0, limit=None, orderby=False, lazy=True):
+    #     fields_list = ['allss_previous_balance', 'allss_debit', 'allss_credit', 'allss_final_balance']
+    #     result = super(BalanceAccountStructure, self).read_group(
+    #         domain=domain, fields=fields_list, groupby=groupby, offset=offset,
+    #         limit=limit, orderby=orderby, lazy=lazy)
 
-        if result and fields:
-            for group_line in result:
-                # Apenas recalcula para grupos, não para linhas únicas
-                if "allss_account_id_count" in group_line and group_line["allss_account_id_count"] > 1:
-                    # Filtra registros correspondentes ao grupo atual
-                    account_id = group_line.get('allss_account_id')
-                    company_id = group_line.get('allss_company_id')
-                    if account_id and company_id:
-                        records = self.search([
-                            ('allss_company_id', '=', company_id),
-                            ('allss_account_id', '=', account_id)
-                        ], order='allss_date asc')
-                        previous = records[0].allss_previous_balance if records else 0.0
-                        group_line["allss_previous_balance"] = previous
-                        group_line["allss_final_balance"] = previous + group_line.get("allss_debit", 0.0) - group_line.get("allss_credit", 0.0)
-                else:
-                    # Para linhas únicas, mantém os valores calculados
-                    group_line["allss_final_balance"] = group_line.get("allss_previous_balance", 0.0) + group_line.get("allss_debit", 0.0) - group_line.get("allss_credit", 0.0)
+    #     if result and fields:
+    #         for group_line in result:
+    #             # Apenas recalcula para grupos, não para linhas únicas
+    #             if "allss_account_id_count" in group_line and group_line["allss_account_id_count"] > 1:
+    #                 # Filtra registros correspondentes ao grupo atual
+    #                 account_id = group_line.get('allss_account_id')
+    #                 company_id = group_line.get('allss_company_id')
+    #                 if account_id and company_id:
+    #                     records = self.search([
+    #                         ('allss_company_id', '=', company_id),
+    #                         ('allss_account_id', '=', account_id)
+    #                     ], order='allss_date asc')
+    #                     previous = records[0].allss_previous_balance if records else 0.0
+    #                     group_line["allss_previous_balance"] = previous
+    #                     group_line["allss_final_balance"] = previous + group_line.get("allss_debit", 0.0) - group_line.get("allss_credit", 0.0)
+    #             else:
+    #                 # Para linhas únicas, mantém os valores calculados
+    #                 group_line["allss_final_balance"] = group_line.get("allss_previous_balance", 0.0) + group_line.get("allss_debit", 0.0) - group_line.get("allss_credit", 0.0)
+
+    #     return result
+
+
+    @api.model
+    def read_group(self, domain, fields, groupby,
+        offset=0, limit=None, orderby=False, lazy=True):
+        required_fields = {'allss_debit', 'allss_credit'}
+        fields = list(set(fields or []) | required_fields)
+
+        result = super().read_group(
+            domain,
+            fields,
+            groupby,
+            offset=offset,
+            limit=limit,
+            orderby=orderby,
+            lazy=lazy,
+        )
+
+        if not result:
+            return result
+
+        for line in result:
+            debit = line.get('allss_debit') or 0.0
+            credit = line.get('allss_credit') or 0.0
+            prev = line.get('allss_previous_balance') or 0.0
+
+            line['allss_final_balance'] = prev + debit - credit
 
         return result
 
