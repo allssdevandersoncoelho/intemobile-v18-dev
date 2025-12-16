@@ -318,12 +318,12 @@ class BalanceAccountStructure(models.Model):
     def execute_sql(self):
         cr = self._cr
 
-        # 1) Limpa a tabela
+        # 1) Limpa tabela
         cr.execute("""
             DELETE FROM public.allss_balance_account_structure;
         """)
 
-        # 2) Reconstrói tudo do zero (mesma lógica antiga, aliases corrigidos)
+        # 2) Reconstrói estrutura
         cr.execute("""
             INSERT INTO public.allss_balance_account_structure (
                 id,
@@ -346,10 +346,10 @@ class BalanceAccountStructure(models.Model):
             )
             SELECT
                 res.id,
-                1 AS create_uid,
-                CURRENT_DATE AS create_date,
-                1 AS write_uid,
-                CURRENT_DATE AS write_date,
+                1,
+                CURRENT_DATE,
+                1,
+                CURRENT_DATE,
                 res.allss_company_id,
                 res.allss_parent_id_6,
                 res.allss_parent_id_5,
@@ -359,7 +359,6 @@ class BalanceAccountStructure(models.Model):
                 res.allss_account_id,
                 res.allss_date,
 
-                /* saldo anterior considerado apenas uma vez por conta */
                 CASE
                     WHEN ROW_NUMBER() OVER (
                         PARTITION BY res.allss_company_id, res.allss_account_id
@@ -367,16 +366,15 @@ class BalanceAccountStructure(models.Model):
                     ) = 1
                     THEN res.allss_previous_balance
                     ELSE 0
-                END AS allss_previous_balance,
+                END,
 
                 res.allss_debit,
                 res.allss_credit,
                 res.allss_final_balance
-
             FROM (
                 SELECT
                     sb3.*,
-                    (SELECT ag.parent_id FROM account_group ag WHERE ag.id = sb3.allss_parent_id_5 LIMIT 1)
+                    (SELECT parent_id FROM account_group WHERE id = sb3.allss_parent_id_5 LIMIT 1)
                         AS allss_parent_id_6,
                     ROW_NUMBER() OVER (
                         ORDER BY sb3.allss_company_id, sb3.allss_account_id, sb3.allss_date
@@ -384,15 +382,13 @@ class BalanceAccountStructure(models.Model):
                 FROM (
                     SELECT
                         sb2.*,
-                        (SELECT ag.parent_id FROM account_group ag WHERE ag.id = sb2.allss_parent_id_4 LIMIT 1)
+                        (SELECT parent_id FROM account_group WHERE id = sb2.allss_parent_id_4 LIMIT 1)
                             AS allss_parent_id_5
                     FROM (
                         SELECT
                             sb1.*,
-                            (SELECT ag.parent_id FROM account_group ag WHERE ag.id = sb1.allss_parent_id_3 LIMIT 1)
+                            (SELECT parent_id FROM account_group WHERE id = sb1.allss_parent_id_3 LIMIT 1)
                                 AS allss_parent_id_4,
-
-                            /* saldo anterior real (antes do ajuste de agrupamento) */
                             (sb1.allss_final_balance + sb1.allss_credit - sb1.allss_debit)
                                 AS allss_previous_balance
                         FROM (
@@ -401,63 +397,56 @@ class BalanceAccountStructure(models.Model):
                                 ctb.group_id   AS allss_group_id,
                                 ctb.id         AS allss_account_id,
 
-                                COALESCE(mv.date, CURRENT_DATE)   AS allss_date,
-                                COALESCE(mv.debit, 0)             AS allss_debit,
-                                COALESCE(mv.credit, 0)            AS allss_credit,
+                                mv.move_date   AS allss_date,
+                                mv.debit       AS allss_debit,
+                                mv.credit      AS allss_credit,
 
-                                /* saldo acumulado real */
-                                COALESCE(
-                                    SUM(COALESCE(mv.debit, 0) - COALESCE(mv.credit, 0))
-                                    OVER (
-                                        PARTITION BY ctb.company_id, ctb.group_id, ctb.id
-                                        ORDER BY ctb.company_id, ctb.group_id, ctb.id, mv.date
-                                    ),
-                                    0
+                                SUM(mv.debit - mv.credit)
+                                OVER (
+                                    PARTITION BY ctb.company_id, ctb.group_id, ctb.id
+                                    ORDER BY mv.move_date
                                 ) AS allss_final_balance,
 
-                                (SELECT ag.parent_id
-                                FROM account_group ag
-                                WHERE ag.id = ctb.group_id
-                                LIMIT 1) AS allss_parent_id_3
-
+                                (SELECT parent_id FROM account_group WHERE id = ctb.group_id LIMIT 1)
+                                    AS allss_parent_id_3
                             FROM account_account ctb
                             LEFT JOIN (
                                 SELECT
                                     sub.company_id,
                                     sub.account_id,
-                                    sub.date,
+                                    sub.move_date,
                                     SUM(sub.debit)  AS debit,
                                     SUM(sub.credit) AS credit
                                 FROM (
-                                    /* meses sem movimento */
+                                    -- meses sem movimento
                                     SELECT
-                                        mov.company_id,
-                                        mov.account_id,
-                                        CAST(date_trunc('month', gs.generate_series) AS date),
+                                        aml.company_id,
+                                        aml.account_id,
+                                        date_trunc('month', gs.d)::date AS move_date,
                                         0 AS debit,
                                         0 AS credit
                                     FROM (
                                         SELECT
-                                            aml.company_id,
-                                            aml.account_id,
-                                            MIN(aml.date) AS date
-                                        FROM account_move_line aml
-                                        GROUP BY aml.company_id, aml.account_id
-                                    ) mov
-                                    INNER JOIN LATERAL generate_series(
-                                        (SELECT MIN(aml2.date) FROM account_move_line aml2),
-                                        CURRENT_DATE + 31,
+                                            company_id,
+                                            account_id,
+                                            MIN(date) AS min_date
+                                        FROM account_move_line
+                                        GROUP BY company_id, account_id
+                                    ) aml
+                                    JOIN LATERAL generate_series(
+                                        aml.min_date,
+                                        CURRENT_DATE,
                                         INTERVAL '1 month'
-                                    ) gs(generate_series)
-                                        ON gs.generate_series >= mov.date
+                                    ) gs(d)
+                                        ON TRUE
 
                                     UNION ALL
 
-                                    /* movimentos reais */
+                                    -- movimentos reais
                                     SELECT
                                         aml.company_id,
                                         aml.account_id,
-                                        aml.date,
+                                        aml.date AS move_date,
                                         aml.debit,
                                         aml.credit
                                     FROM account_move_line aml
@@ -468,31 +457,25 @@ class BalanceAccountStructure(models.Model):
                                 GROUP BY
                                     sub.company_id,
                                     sub.account_id,
-                                    sub.date
+                                    sub.move_date
                             ) mv
                                 ON mv.company_id = ctb.company_id
                             AND mv.account_id = ctb.id
                         ) sb1
                     ) sb2
                 ) sb3
-                ORDER BY sb3.allss_company_id, sb3.allss_account_id, sb3.allss_date
             ) res;
         """)
 
-        # 3) Ajusta a sequence
+        # 3) Ajusta sequence
         cr.execute("""
-            BEGIN;
-                LOCK TABLE allss_balance_account_structure IN EXCLUSIVE MODE;
-                SELECT setval(
-                    'allss_balance_account_structure_id_seq',
-                    COALESCE(
-                        (SELECT MAX(id) + 1 FROM allss_balance_account_structure),
-                        1
-                    ),
-                    false
-                );
-            COMMIT;
+            SELECT setval(
+                'allss_balance_account_structure_id_seq',
+                COALESCE((SELECT MAX(id) FROM allss_balance_account_structure), 0) + 1,
+                false
+            );
         """)
+
 
 
 
