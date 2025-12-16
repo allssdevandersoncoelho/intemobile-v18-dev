@@ -376,10 +376,8 @@ class BalanceAccountStructure(models.Model):
     def execute_sql(self):
         cr = self._cr
 
-        # Limpa tabela
         cr.execute("TRUNCATE TABLE allss_balance_account_structure RESTART IDENTITY CASCADE;")
 
-        # Insere estrutura completa
         cr.execute("""
             INSERT INTO allss_balance_account_structure (
                 create_uid, create_date, write_uid, write_date,
@@ -403,25 +401,30 @@ class BalanceAccountStructure(models.Model):
                 NOW(),
                 aml.company_id,
 
-                -- nível 1 (topo)
-                COALESCE(g6.id, g5.id, g4.id, g3.id)      AS allss_parent_id_6,
+                COALESCE(aml._allss_parent_id_6,
+                        aml._allss_parent_id_5,
+                        aml._allss_parent_id_4,
+                        aml._allss_parent_id_3,
+                        aml._allss_group_id),
 
-                -- nível 2
-                COALESCE(g5.id, g4.id, g3.id)             AS allss_parent_id_5,
+                COALESCE(aml._allss_parent_id_5,
+                        aml._allss_parent_id_4,
+                        aml._allss_parent_id_3,
+                        aml._allss_group_id),
 
-                -- nível 3
-                COALESCE(g4.id, g3.id)                    AS allss_parent_id_4,
+                COALESCE(aml._allss_parent_id_4,
+                        aml._allss_parent_id_3,
+                        aml._allss_group_id),
 
-                -- nível 4
-                g3.id                                     AS allss_parent_id_3,
+                COALESCE(aml._allss_parent_id_3,
+                        aml._allss_group_id),
 
-                -- nível 5 (grupo da conta)
-                g3.id                                     AS allss_group_id,
+                aml._allss_group_id,
 
                 aml.account_id,
-                aml.month_date                            AS allss_date,
+                aml.month_date,
 
-                -- saldo anterior = saldo acumulado até mês anterior
+                -- saldo anterior
                 COALESCE(
                     SUM(aml.balance) OVER (
                         PARTITION BY aml.company_id, aml.account_id
@@ -429,7 +432,7 @@ class BalanceAccountStructure(models.Model):
                         ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
                     ),
                     0
-                )                                         AS allss_previous_balance,
+                ),
 
                 aml.debit,
                 aml.credit,
@@ -439,17 +442,23 @@ class BalanceAccountStructure(models.Model):
                     PARTITION BY aml.company_id, aml.account_id
                     ORDER BY aml.month_date
                     ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-                )                                         AS allss_final_balance
+                )
 
             FROM (
-                -- movimentos mensais (com meses sem movimento)
                 SELECT
                     l.company_id,
                     l.account_id,
                     DATE_TRUNC('month', gs)::date AS month_date,
                     SUM(l.debit)  AS debit,
                     SUM(l.credit) AS credit,
-                    SUM(l.debit - l.credit) AS balance
+                    SUM(l.debit - l.credit) AS balance,
+
+                    l._allss_group_id,
+                    l._allss_parent_id_3,
+                    l._allss_parent_id_4,
+                    l._allss_parent_id_5,
+                    l._allss_parent_id_6
+
                 FROM account_move_line l
                 JOIN account_move m ON m.id = l.move_id AND m.state = 'posted'
                 JOIN generate_series(
@@ -457,19 +466,17 @@ class BalanceAccountStructure(models.Model):
                     CURRENT_DATE,
                     INTERVAL '1 month'
                 ) gs ON gs >= DATE_TRUNC('month', l.date)
-                GROUP BY l.company_id, l.account_id, month_date
+
+                GROUP BY
+                    l.company_id,
+                    l.account_id,
+                    month_date,
+                    l._allss_group_id,
+                    l._allss_parent_id_3,
+                    l._allss_parent_id_4,
+                    l._allss_parent_id_5,
+                    l._allss_parent_id_6
             ) aml
-
-            -- conta
-            JOIN account_account aa ON aa.id = aml.account_id
-
-            -- grupo direto
-            LEFT JOIN account_group g3 ON g3.id = aa.group_id
-
-            -- sobe hierarquia
-            LEFT JOIN account_group g4 ON g4.id = g3.parent_id
-            LEFT JOIN account_group g5 ON g5.id = g4.parent_id
-            LEFT JOIN account_group g6 ON g6.id = g5.parent_id
         """)
 
         cr.commit()
