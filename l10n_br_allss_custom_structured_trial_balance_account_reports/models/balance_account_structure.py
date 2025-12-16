@@ -317,15 +317,14 @@ class BalanceAccountStructure(models.Model):
     def execute_sql(self):
         cr = self._cr
 
-        # 1) Limpa a tabela
+        # 1) Limpa tabela
         cr.execute("""
             DELETE FROM public.allss_balance_account_structure;
         """)
 
-        # 2) Recria os dados corretamente
+        # 2) Reprocessa os dados
         cr.execute("""
             WITH monthly AS (
-                -- AGREGA POR EMPRESA + CONTA + MÊS
                 SELECT
                     aml.company_id,
                     aml.account_id,
@@ -352,29 +351,24 @@ class BalanceAccountStructure(models.Model):
                     date_trunc('month', aml.date)
             ),
 
-            balances AS (
-                -- CALCULA SALDOS COM WINDOW FUNCTIONS (SEM ANINHAR)
+            running_balance AS (
                 SELECT
                     m.*,
-
-                    -- saldo acumulado
                     SUM(m.debit - m.credit) OVER (
                         PARTITION BY m.company_id, m.account_id
                         ORDER BY m.month_date
-                    ) AS allss_final_balance,
-
-                    -- saldo anterior
-                    LAG(
-                        SUM(m.debit - m.credit) OVER (
-                            PARTITION BY m.company_id, m.account_id
-                            ORDER BY m.month_date
-                        ),
-                        1, 0
-                    ) OVER (
-                        PARTITION BY m.company_id, m.account_id
-                        ORDER BY m.month_date
-                    ) AS allss_previous_balance
+                    ) AS allss_final_balance
                 FROM monthly m
+            ),
+
+            final_data AS (
+                SELECT
+                    rb.*,
+                    LAG(rb.allss_final_balance, 1, 0) OVER (
+                        PARTITION BY rb.company_id, rb.account_id
+                        ORDER BY rb.month_date
+                    ) AS allss_previous_balance
+                FROM running_balance rb
             )
 
             INSERT INTO public.allss_balance_account_structure (
@@ -414,11 +408,11 @@ class BalanceAccountStructure(models.Model):
                 account_id              AS allss_account_id,
                 month_date              AS allss_date,
 
-                COALESCE(allss_previous_balance, 0) AS allss_previous_balance,
+                allss_previous_balance  AS allss_previous_balance,
                 debit                   AS allss_debit,
                 credit                  AS allss_credit,
                 allss_final_balance     AS allss_final_balance
-            FROM balances
+            FROM final_data
             ORDER BY company_id, account_id, month_date;
         """)
 
@@ -433,6 +427,7 @@ class BalanceAccountStructure(models.Model):
                 );
             COMMIT;
         """)
+
 
 
 
