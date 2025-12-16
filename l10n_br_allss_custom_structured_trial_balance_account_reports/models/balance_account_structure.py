@@ -398,7 +398,7 @@ class BalanceAccountStructure(models.Model):
                                     SUM(COALESCE(debit, 0) - COALESCE(credit, 0))
                                     OVER (
                                         PARTITION BY ctb.company_id, ctb.group_id, ctb.id
-                                        ORDER BY ctb.company_id, ctb.group_id, ctb.id, date
+                                        ORDER BY ctb.company_id, ctb.group_id, ctb.id, mv.date
                                     ),
                                     0
                                 ) AS allss_final_balance,
