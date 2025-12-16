@@ -328,10 +328,10 @@ class BalanceAccountStructure(models.Model):
             )
             SELECT
                 id,
-                1 AS create_uid,
-                CURRENT_DATE AS create_date,
-                1 AS write_uid,
-                CURRENT_DATE AS write_date,
+                1,
+                CURRENT_DATE,
+                1,
+                CURRENT_DATE,
                 allss_company_id,
                 allss_parent_id_6,
                 allss_parent_id_5,
@@ -363,7 +363,9 @@ class BalanceAccountStructure(models.Model):
                                 ctb.group_id AS allss_group_id,
                                 ctb.id AS allss_account_id,
 
-                                
+                                /* DATA:
+                                - movimento → data real
+                                - sem movimento → primeiro dia do mês */
                                 COALESCE(mv_atu.move_date, mv_atu.month_date) AS allss_date,
 
                                 COALESCE(mv_atu.debit, 0) AS allss_debit,
@@ -390,19 +392,20 @@ class BalanceAccountStructure(models.Model):
                             FROM account_account ctb
                             LEFT JOIN (
                                 SELECT
-                                    company_id,
-                                    account_id,
-
-                                    date AS move_date,
-
-                                    date_trunc('month', date)::date AS month_date,
-
-                                    SUM(debit) AS debit,
-                                    SUM(credit) AS credit
+                                    aml.company_id AS company_id,
+                                    aml.account_id AS account_id,
+                                    aml.date AS move_date,
+                                    date_trunc('month', aml.date)::date AS month_date,
+                                    SUM(aml.debit) AS debit,
+                                    SUM(aml.credit) AS credit
                                 FROM account_move_line aml
-                                JOIN account_move am ON am.id = aml.move_id
-                                                    AND am.state = 'posted'
-                                GROUP BY company_id, account_id, date
+                                JOIN account_move am
+                                ON am.id = aml.move_id
+                                AND am.state = 'posted'
+                                GROUP BY
+                                    aml.company_id,
+                                    aml.account_id,
+                                    aml.date
                             ) mv_atu
                             ON mv_atu.company_id = ctb.company_id
                             AND mv_atu.account_id = ctb.id
