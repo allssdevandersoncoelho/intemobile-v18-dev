@@ -359,7 +359,7 @@ class BalanceAccountStructure(models.Model):
                             (allss_final_balance + allss_credit - allss_debit) AS allss_previous_balance
                         FROM (
                             SELECT
-                                ctb.company_id AS allss_company_id,
+                                mv_atu.company_id AS allss_company_id,
                                 ctb.group_id AS allss_group_id,
                                 ctb.id AS allss_account_id,
 
@@ -374,9 +374,12 @@ class BalanceAccountStructure(models.Model):
                                 COALESCE(
                                     SUM(COALESCE(mv_atu.debit, 0) - COALESCE(mv_atu.credit, 0))
                                     OVER (
-                                        PARTITION BY ctb.company_id, ctb.group_id, ctb.id
+                                        PARTITION BY
+                                            mv_atu.company_id,
+                                            ctb.group_id,
+                                            ctb.id
                                         ORDER BY
-                                            ctb.company_id,
+                                            mv_atu.company_id,
                                             ctb.group_id,
                                             ctb.id,
                                             COALESCE(mv_atu.move_date, mv_atu.month_date)
@@ -392,8 +395,8 @@ class BalanceAccountStructure(models.Model):
                             FROM account_account ctb
                             LEFT JOIN (
                                 SELECT
-                                    aml.company_id AS company_id,
-                                    aml.account_id AS account_id,
+                                    aml.company_id,
+                                    aml.account_id,
                                     aml.date AS move_date,
                                     date_trunc('month', aml.date)::date AS month_date,
                                     SUM(aml.debit) AS debit,
@@ -407,8 +410,7 @@ class BalanceAccountStructure(models.Model):
                                     aml.account_id,
                                     aml.date
                             ) mv_atu
-                            ON mv_atu.company_id = ctb.company_id
-                            AND mv_atu.account_id = ctb.id
+                            ON mv_atu.account_id = ctb.id
                         ) sbqry_a
                     ) sbqry_b
                 ) sbqry_c
@@ -432,6 +434,7 @@ class BalanceAccountStructure(models.Model):
                 );
             COMMIT;
         """)
+
 
 
 
