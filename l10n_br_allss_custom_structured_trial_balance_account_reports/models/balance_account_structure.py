@@ -115,16 +115,21 @@ class BalanceAccountStructure(models.Model):
 
     @api.model
     def read_group(self, domain, fields, groupby, offset=0, limit=None, orderby=False, lazy=True):
-        fields_list = ['allss_previous_balance', 'allss_debit', 'allss_credit', 'allss_final_balance']
+        fields_list = [
+            'allss_previous_balance',
+            'allss_debit',
+            'allss_credit',
+            'allss_final_balance',
+        ]
 
-        result = super(BalanceAccountStructure, self).read_group(
+        result = super().read_group(
             domain=domain,
             fields=fields_list,
             groupby=groupby,
             offset=offset,
             limit=limit,
             orderby=orderby,
-            lazy=lazy
+            lazy=lazy,
         )
 
         if not result or not fields:
@@ -132,38 +137,24 @@ class BalanceAccountStructure(models.Model):
 
         for group_line in result:
             group_domain = group_line.get('__domain')
+            if not group_domain:
+                continue
 
-            # Caso 1: agrupamento com múltiplas contas
-            if group_line.get('allss_account_id_count', 0) > 1 and group_domain:
-                records = self.search(group_domain, order='allss_date asc, id asc', limit=1)
-                previous = records.allss_previous_balance if records else 0.0
+            # Registro mais antigo do grupo
+            first_record = self.search(
+                group_domain,
+                order='allss_date asc, id asc',
+                limit=1
+            )
 
-                group_line['allss_previous_balance'] = previous
-                group_line['allss_final_balance'] = (
-                    previous
-                    + group_line.get('allss_debit', 0.0)
-                    - group_line.get('allss_credit', 0.0)
-                )
+            previous = first_record.allss_previous_balance if first_record else 0.0
 
-            # Caso 2: apenas uma conta (ou linha única)
-            elif group_domain:
-                records = self.search(group_domain, order='allss_date asc, id asc', limit=1)
-                previous = records.allss_previous_balance if records else 0.0
-
-                group_line['allss_previous_balance'] = previous
-                group_line['allss_final_balance'] = (
-                    previous
-                    + group_line.get('allss_debit', 0.0)
-                    - group_line.get('allss_credit', 0.0)
-                )
-
-            else:
-                # fallback defensivo
-                group_line['allss_final_balance'] = (
-                    group_line.get('allss_previous_balance', 0.0)
-                    + group_line.get('allss_debit', 0.0)
-                    - group_line.get('allss_credit', 0.0)
-                )
+            group_line['allss_previous_balance'] = previous
+            group_line['allss_final_balance'] = (
+                previous
+                + group_line.get('allss_debit', 0.0)
+                - group_line.get('allss_credit', 0.0)
+            )
 
         return result
 
