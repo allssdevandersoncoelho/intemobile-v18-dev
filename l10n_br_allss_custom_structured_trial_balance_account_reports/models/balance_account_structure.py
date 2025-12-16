@@ -314,17 +314,14 @@ class BalanceAccountStructure(models.Model):
 
 
 
-
     def execute_sql(self):
         cr = self._cr
 
-        # 1) Limpa a tabela destino
+        # Limpa tabela
         cr.execute("""
             DELETE FROM public.allss_balance_account_structure;
         """)
 
-        # 2) Recria os dados exatamente como o SQL antigo,
-        #    ajustando apenas o agrupamento
         cr.execute("""
             INSERT INTO public.allss_balance_account_structure (
                 id,
@@ -349,38 +346,33 @@ class BalanceAccountStructure(models.Model):
                 ROW_NUMBER() OVER (
                     ORDER BY
                         mv.company_id,
-                        ctb.id,
+                        mv.account_id,
                         mv.month_date
-                )                         AS id,
-                1                         AS create_uid,
-                CURRENT_DATE              AS create_date,
-                1                         AS write_uid,
-                CURRENT_DATE              AS write_date,
+                )                               AS id,
+                1                               AS create_uid,
+                CURRENT_DATE                    AS create_date,
+                1                               AS write_uid,
+                CURRENT_DATE                    AS write_date,
 
-                -- empresa VEM DO MOVIMENTO
-                mv.company_id              AS allss_company_id,
+                mv.company_id                   AS allss_company_id,
+                mv.allss_parent_id_6,
+                mv.allss_parent_id_5,
+                mv.allss_parent_id_4,
+                mv.allss_parent_id_3,
+                mv.allss_group_id,
+                mv.account_id                   AS allss_account_id,
+                mv.month_date                   AS allss_date,
 
-                -- hierarquia de grupos
-                ag6.parent_id              AS allss_parent_id_6,
-                ag5.parent_id              AS allss_parent_id_5,
-                ag4.parent_id              AS allss_parent_id_4,
-                ag3.parent_id              AS allss_parent_id_3,
-                ctb.group_id               AS allss_group_id,
-
-                ctb.id                     AS allss_account_id,
-                mv.month_date              AS allss_date,
-
-                -- saldo anterior (somente primeira ocorrência)
+                -- saldo anterior só uma vez
                 SUM(
                     CASE
                         WHEN mv.row_num = 1 THEN mv.previous_balance
                         ELSE 0
                     END
-                )                           AS allss_previous_balance,
+                )                               AS allss_previous_balance,
 
-                -- débitos e créditos normais
-                SUM(mv.debit)              AS allss_debit,
-                SUM(mv.credit)             AS allss_credit,
+                SUM(mv.debit)                  AS allss_debit,
+                SUM(mv.credit)                 AS allss_credit,
 
                 -- saldo final
                 SUM(
@@ -390,22 +382,20 @@ class BalanceAccountStructure(models.Model):
                     END
                 )
                 + SUM(mv.debit)
-                - SUM(mv.credit)           AS allss_final_balance
+                - SUM(mv.credit)               AS allss_final_balance
 
-            FROM account_account ctb
-
-            -- hierarquia dos grupos
-            LEFT JOIN account_group ag3 ON ag3.id = ctb.group_id
-            LEFT JOIN account_group ag4 ON ag4.id = ag3.parent_id
-            LEFT JOIN account_group ag5 ON ag5.id = ag4.parent_id
-            LEFT JOIN account_group ag6 ON ag6.id = ag5.parent_id
-
-            -- movimentos (empresa vem daqui)
-            LEFT JOIN (
+            FROM (
                 SELECT
                     aml.company_id,
                     aml.account_id,
+                    aml._allss_group_id          AS allss_group_id,
+                    aml._allss_parent_id_3,
+                    aml._allss_parent_id_4,
+                    aml._allss_parent_id_5,
+                    aml._allss_parent_id_6,
+
                     date_trunc('month', aml.date)::date AS month_date,
+
                     SUM(aml.debit)  AS debit,
                     SUM(aml.credit) AS credit,
 
@@ -415,7 +405,7 @@ class BalanceAccountStructure(models.Model):
                         ORDER BY date_trunc('month', aml.date)
                     ) AS final_balance,
 
-                    -- saldo anterior calculado corretamente
+                    -- saldo anterior
                     LAG(
                         SUM(SUM(aml.debit - aml.credit)) OVER (
                             PARTITION BY aml.company_id, aml.account_id
@@ -440,42 +430,41 @@ class BalanceAccountStructure(models.Model):
                 GROUP BY
                     aml.company_id,
                     aml.account_id,
+                    aml._allss_group_id,
+                    aml._allss_parent_id_3,
+                    aml._allss_parent_id_4,
+                    aml._allss_parent_id_5,
+                    aml._allss_parent_id_6,
                     date_trunc('month', aml.date)
             ) mv
-                ON mv.account_id = ctb.id
 
             GROUP BY
                 mv.company_id,
-                ctb.id,
-                ctb.group_id,
-                ag3.parent_id,
-                ag4.parent_id,
-                ag5.parent_id,
-                ag6.parent_id,
+                mv.account_id,
+                mv.allss_group_id,
+                mv.allss_parent_id_3,
+                mv.allss_parent_id_4,
+                mv.allss_parent_id_5,
+                mv.allss_parent_id_6,
                 mv.month_date
 
             ORDER BY
                 mv.company_id,
-                ctb.id,
+                mv.account_id,
                 mv.month_date;
         """)
 
-        # 3) Ajusta a sequence
+        # Ajusta sequence
         cr.execute("""
             BEGIN;
                 LOCK TABLE allss_balance_account_structure IN EXCLUSIVE MODE;
                 SELECT setval(
                     'allss_balance_account_structure_id_seq',
-                    COALESCE(
-                        (SELECT MAX(id) + 1 FROM allss_balance_account_structure),
-                        1
-                    ),
+                    COALESCE((SELECT MAX(id) + 1 FROM allss_balance_account_structure), 1),
                     false
                 );
             COMMIT;
         """)
-
-
 
 
 
