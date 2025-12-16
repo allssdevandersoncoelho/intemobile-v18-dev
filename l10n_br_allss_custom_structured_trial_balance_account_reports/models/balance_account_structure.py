@@ -317,12 +317,66 @@ class BalanceAccountStructure(models.Model):
     def execute_sql(self):
         cr = self._cr
 
-        # Limpa tabela
+        # 1) Limpa a tabela
         cr.execute("""
             DELETE FROM public.allss_balance_account_structure;
         """)
 
+        # 2) Recria os dados corretamente
         cr.execute("""
+            WITH monthly AS (
+                -- AGREGA POR EMPRESA + CONTA + MÊS
+                SELECT
+                    aml.company_id,
+                    aml.account_id,
+                    aml._allss_group_id        AS allss_group_id,
+                    aml._allss_parent_id_3,
+                    aml._allss_parent_id_4,
+                    aml._allss_parent_id_5,
+                    aml._allss_parent_id_6,
+                    date_trunc('month', aml.date)::date AS month_date,
+                    SUM(aml.debit)  AS debit,
+                    SUM(aml.credit) AS credit
+                FROM account_move_line aml
+                JOIN account_move am
+                ON am.id = aml.move_id
+                AND am.state = 'posted'
+                GROUP BY
+                    aml.company_id,
+                    aml.account_id,
+                    aml._allss_group_id,
+                    aml._allss_parent_id_3,
+                    aml._allss_parent_id_4,
+                    aml._allss_parent_id_5,
+                    aml._allss_parent_id_6,
+                    date_trunc('month', aml.date)
+            ),
+
+            balances AS (
+                -- CALCULA SALDOS COM WINDOW FUNCTIONS (SEM ANINHAR)
+                SELECT
+                    m.*,
+
+                    -- saldo acumulado
+                    SUM(m.debit - m.credit) OVER (
+                        PARTITION BY m.company_id, m.account_id
+                        ORDER BY m.month_date
+                    ) AS allss_final_balance,
+
+                    -- saldo anterior
+                    LAG(
+                        SUM(m.debit - m.credit) OVER (
+                            PARTITION BY m.company_id, m.account_id
+                            ORDER BY m.month_date
+                        ),
+                        1, 0
+                    ) OVER (
+                        PARTITION BY m.company_id, m.account_id
+                        ORDER BY m.month_date
+                    ) AS allss_previous_balance
+                FROM monthly m
+            )
+
             INSERT INTO public.allss_balance_account_structure (
                 id,
                 create_uid,
@@ -344,117 +398,31 @@ class BalanceAccountStructure(models.Model):
             )
             SELECT
                 ROW_NUMBER() OVER (
-                    ORDER BY
-                        mv.company_id,
-                        mv.account_id,
-                        mv.month_date
-                )                               AS id,
-                1                               AS create_uid,
-                CURRENT_DATE                    AS create_date,
-                1                               AS write_uid,
-                CURRENT_DATE                    AS write_date,
+                    ORDER BY company_id, account_id, month_date
+                )                       AS id,
+                1                       AS create_uid,
+                CURRENT_DATE            AS create_date,
+                1                       AS write_uid,
+                CURRENT_DATE            AS write_date,
 
-                mv.company_id                   AS allss_company_id,
-                mv.allss_parent_id_6,
-                mv.allss_parent_id_5,
-                mv.allss_parent_id_4,
-                mv.allss_parent_id_3,
-                mv.allss_group_id,
-                mv.account_id                   AS allss_account_id,
-                mv.month_date                   AS allss_date,
+                company_id              AS allss_company_id,
+                _allss_parent_id_6      AS allss_parent_id_6,
+                _allss_parent_id_5      AS allss_parent_id_5,
+                _allss_parent_id_4      AS allss_parent_id_4,
+                _allss_parent_id_3      AS allss_parent_id_3,
+                allss_group_id,
+                account_id              AS allss_account_id,
+                month_date              AS allss_date,
 
-                -- saldo anterior só uma vez
-                SUM(
-                    CASE
-                        WHEN mv.row_num = 1 THEN mv.previous_balance
-                        ELSE 0
-                    END
-                )                               AS allss_previous_balance,
-
-                SUM(mv.debit)                  AS allss_debit,
-                SUM(mv.credit)                 AS allss_credit,
-
-                -- saldo final
-                SUM(
-                    CASE
-                        WHEN mv.row_num = 1 THEN mv.previous_balance
-                        ELSE 0
-                    END
-                )
-                + SUM(mv.debit)
-                - SUM(mv.credit)               AS allss_final_balance
-
-            FROM (
-                SELECT
-                    aml.company_id,
-                    aml.account_id,
-                    aml._allss_group_id          AS allss_group_id,
-                    aml._allss_parent_id_3,
-                    aml._allss_parent_id_4,
-                    aml._allss_parent_id_5,
-                    aml._allss_parent_id_6,
-
-                    date_trunc('month', aml.date)::date AS month_date,
-
-                    SUM(aml.debit)  AS debit,
-                    SUM(aml.credit) AS credit,
-
-                    -- saldo acumulado
-                    SUM(SUM(aml.debit - aml.credit)) OVER (
-                        PARTITION BY aml.company_id, aml.account_id
-                        ORDER BY date_trunc('month', aml.date)
-                    ) AS final_balance,
-
-                    -- saldo anterior
-                    LAG(
-                        SUM(SUM(aml.debit - aml.credit)) OVER (
-                            PARTITION BY aml.company_id, aml.account_id
-                            ORDER BY date_trunc('month', aml.date)
-                        ),
-                        1, 0
-                    ) OVER (
-                        PARTITION BY aml.company_id, aml.account_id
-                        ORDER BY date_trunc('month', aml.date)
-                    ) AS previous_balance,
-
-                    ROW_NUMBER() OVER (
-                        PARTITION BY aml.company_id, aml.account_id
-                        ORDER BY date_trunc('month', aml.date)
-                    ) AS row_num
-
-                FROM account_move_line aml
-                JOIN account_move am
-                ON am.id = aml.move_id
-                AND am.state = 'posted'
-
-                GROUP BY
-                    aml.company_id,
-                    aml.account_id,
-                    aml._allss_group_id,
-                    aml._allss_parent_id_3,
-                    aml._allss_parent_id_4,
-                    aml._allss_parent_id_5,
-                    aml._allss_parent_id_6,
-                    date_trunc('month', aml.date)
-            ) mv
-
-            GROUP BY
-                mv.company_id,
-                mv.account_id,
-                mv.allss_group_id,
-                mv.allss_parent_id_3,
-                mv.allss_parent_id_4,
-                mv.allss_parent_id_5,
-                mv.allss_parent_id_6,
-                mv.month_date
-
-            ORDER BY
-                mv.company_id,
-                mv.account_id,
-                mv.month_date;
+                COALESCE(allss_previous_balance, 0) AS allss_previous_balance,
+                debit                   AS allss_debit,
+                credit                  AS allss_credit,
+                allss_final_balance     AS allss_final_balance
+            FROM balances
+            ORDER BY company_id, account_id, month_date;
         """)
 
-        # Ajusta sequence
+        # 3) Ajusta a sequence
         cr.execute("""
             BEGIN;
                 LOCK TABLE allss_balance_account_structure IN EXCLUSIVE MODE;
@@ -465,6 +433,7 @@ class BalanceAccountStructure(models.Model):
                 );
             COMMIT;
         """)
+
 
 
 
