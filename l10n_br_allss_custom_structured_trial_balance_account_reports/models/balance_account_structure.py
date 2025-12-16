@@ -389,9 +389,9 @@ class BalanceAccountStructure(models.Model):
                                 ctb.company_id AS allss_company_id,
                                 ctb.group_id AS allss_group_id,
                                 ctb.id AS allss_account_id,
-                                COALESCE(date, CURRENT_DATE) AS allss_date,
-                                COALESCE(debit, 0) AS allss_debit,
-                                COALESCE(credit, 0) AS allss_credit,
+                                COALESCE(mv.date, CURRENT_DATE) AS allss_date,
+                                COALESCE(mv.debit, 0) AS allss_debit,
+                                COALESCE(mv.credit, 0) AS allss_credit,
 
                                 /* saldo acumulado real */
                                 COALESCE(
