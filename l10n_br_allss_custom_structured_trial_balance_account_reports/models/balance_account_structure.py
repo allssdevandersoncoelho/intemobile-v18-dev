@@ -321,8 +321,10 @@ class BalanceAccountStructure(models.Model):
             INSERT INTO public.allss_balance_account_structure (
                 id, create_uid, create_date, write_uid, write_date,
                 allss_company_id,
-                allss_parent_id_6, allss_parent_id_5,
-                allss_parent_id_4, allss_parent_id_3,
+                allss_parent_id_6,
+                allss_parent_id_5,
+                allss_parent_id_4,
+                allss_parent_id_3,
                 allss_group_id,
                 allss_account_id,
                 allss_date,
@@ -356,73 +358,68 @@ class BalanceAccountStructure(models.Model):
                     ) AS id
                 FROM (
                     SELECT *,
-                        (SELECT parent_id FROM account_group WHERE id = allss_parent_id_4 LIMIT 1) AS allss_parent_id_5
+                        (allss_final_balance + allss_credit - allss_debit)
+                            AS allss_previous_balance
                     FROM (
-                        SELECT *,
-                            (SELECT parent_id FROM account_group WHERE id = allss_parent_id_3 LIMIT 1) AS allss_parent_id_4,
-                            (allss_final_balance + allss_credit - allss_debit) AS allss_previous_balance
+                        SELECT
+                            mv.company_id              AS allss_company_id,
+                            mv._allss_parent_id_6      AS allss_parent_id_6,
+                            mv._allss_parent_id_5      AS allss_parent_id_5,
+                            mv._allss_parent_id_4      AS allss_parent_id_4,
+                            mv._allss_parent_id_3      AS allss_parent_id_3,
+                            mv._allss_group_id         AS allss_group_id,
+                            mv.account_id              AS allss_account_id,
+
+                            /* data real se houver movimento, senão 1º dia do mês */
+                            COALESCE(mv.date, mv.month_date)
+                                                        AS allss_date,
+
+                            COALESCE(mv.debit, 0)      AS allss_debit,
+                            COALESCE(mv.credit, 0)     AS allss_credit,
+
+                            SUM(
+                                COALESCE(mv.debit, 0) - COALESCE(mv.credit, 0)
+                            ) OVER (
+                                PARTITION BY
+                                    mv.company_id,
+                                    mv._allss_group_id,
+                                    mv.account_id
+                                ORDER BY
+                                    mv.company_id,
+                                    mv._allss_group_id,
+                                    mv.account_id,
+                                    COALESCE(mv.date, mv.month_date)
+                            )                           AS allss_final_balance
+
                         FROM (
                             SELECT
-                                mv.company_id                       AS allss_company_id,
-                                mv._allss_group_id                  AS allss_group_id,
-                                mv.account_id                       AS allss_account_id,
-
-                                /* data real se houver movimento, senão 1º dia do mês */
-                                COALESCE(mv.date, mv.month_date)   AS allss_date,
-
-                                COALESCE(mv.debit, 0)               AS allss_debit,
-                                COALESCE(mv.credit, 0)              AS allss_credit,
-
-                                SUM(
-                                    COALESCE(mv.debit, 0) - COALESCE(mv.credit, 0)
-                                ) OVER (
-                                    PARTITION BY
-                                        mv.company_id,
-                                        mv._allss_group_id,
-                                        mv.account_id
-                                    ORDER BY
-                                        mv.company_id,
-                                        mv._allss_group_id,
-                                        mv.account_id,
-                                        COALESCE(mv.date, mv.month_date)
-                                )                                   AS allss_final_balance,
-
-                                (SELECT parent_id
-                                FROM account_group
-                                WHERE id = mv._allss_group_id
-                                LIMIT 1)                           AS allss_parent_id_3
-
-                            FROM (
-                                SELECT
-                                    aml.company_id,
-                                    aml.account_id,
-                                    aml._allss_group_id,
-                                    aml._allss_parent_id_6,
-                                    aml._allss_parent_id_5,
-                                    aml._allss_parent_id_4,
-                                    aml._allss_parent_id_3,
-                                    aml.date,
-                                    date_trunc('month', aml.date)::date AS month_date,
-                                    SUM(aml.debit) AS debit,
-                                    SUM(aml.credit) AS credit
-                                FROM account_move_line aml
-                                JOIN account_move am
-                                ON am.id = aml.move_id
-                                AND am.state = 'posted'
-                                GROUP BY
-                                    aml.company_id,
-                                    aml.account_id,
-                                    aml._allss_group_id,
-                                    aml._allss_parent_id_6,
-                                    aml._allss_parent_id_5,
-                                    aml._allss_parent_id_4,
-                                    aml._allss_parent_id_3,
-                                    aml.date
-                            ) mv
-                        ) s1
-                    ) s2
-                ) s3
-                ORDER BY allss_company_id, allss_account_id, allss_date
+                                aml.company_id,
+                                aml.account_id,
+                                aml._allss_group_id,
+                                aml._allss_parent_id_6,
+                                aml._allss_parent_id_5,
+                                aml._allss_parent_id_4,
+                                aml._allss_parent_id_3,
+                                aml.date,
+                                date_trunc('month', aml.date)::date AS month_date,
+                                SUM(aml.debit)  AS debit,
+                                SUM(aml.credit) AS credit
+                            FROM account_move_line aml
+                            JOIN account_move am
+                            ON am.id = aml.move_id
+                            AND am.state = 'posted'
+                            GROUP BY
+                                aml.company_id,
+                                aml.account_id,
+                                aml._allss_group_id,
+                                aml._allss_parent_id_6,
+                                aml._allss_parent_id_5,
+                                aml._allss_parent_id_4,
+                                aml._allss_parent_id_3,
+                                aml.date
+                        ) mv
+                    ) s1
+                ) s2
             ) final;
         """)
 
@@ -436,6 +433,7 @@ class BalanceAccountStructure(models.Model):
                 );
             COMMIT;
         """)
+
 
 
 
