@@ -204,288 +204,101 @@ class BalanceAccountStructure(models.Model):
         return True
 
 
-    # def init_account_structure(self):
-    #     self._cr.execute("""
-    #         SELECT DISTINCT 
-    #             mov.company_id,
-    #             mov.account_id,
-    #             date_trunc('month', gs)::date AS allss_date,
-    #             mov._allss_group_id
-    #         FROM (
-    #             SELECT
-    #                 company_id,
-    #                 account_id,
-    #                 MIN(date) AS date,
-    #                 _allss_group_id
-    #             FROM account_move_line
-    #             GROUP BY company_id, account_id, _allss_group_id
-    #         ) mov
-    #         INNER JOIN generate_series(
-    #             (SELECT MIN(date) FROM account_move_line),
-    #             CURRENT_DATE + INTERVAL '31 days',
-    #             INTERVAL '1 month'
-    #         ) gs ON gs >= mov.date
-    #         WHERE DATE_PART('month', gs) = DATE_PART('month', CURRENT_DATE)
-    #         AND DATE_PART('year', gs) = DATE_PART('year', CURRENT_DATE)
-    #     """)
+   
 
-    #     for row in self._cr.fetchall():
-    #         company_id, account_id, allss_date, group_id = row
-
-    #         # Verifica se já existe registro
-    #         result = self.env['allss.balance.account.structure'].search([
-    #             ('allss_company_id', '=', company_id),
-    #             ('allss_account_id', '=', account_id),
-    #             ('allss_date', '=', allss_date)
-    #         ], limit=1)
-
-    #         if result:
-    #             continue
-
-    #         # Busca saldo anterior
-    #         prev = self.env['allss.balance.account.structure'].search([
-    #             ('allss_company_id', '=', company_id),
-    #             ('allss_account_id', '=', account_id),
-    #             ('allss_date', '<', allss_date),
-    #         ], limit=1, order='allss_date desc')
-
-    #         group = self.env['account.group'].browse(group_id) if group_id else False
-
-    #         levels = []
-    #         current = group
-    #         while current:
-    #             levels.append(current)
-    #             current = current.parent_id
-
-    #         levels = list(reversed(levels))
-
-    #         parent_6 = levels[0].id if len(levels) > 0 else False  # 1º nível
-    #         parent_5 = levels[1].id if len(levels) > 1 else False  # 2º nível
-    #         parent_4 = levels[2].id if len(levels) > 2 else False  # 3º nível
-    #         parent_3 = levels[3].id if len(levels) > 3 else False  # 4º nível
-    #         group_5  = levels[4].id if len(levels) > 4 else False  # 5º nível
-
-    #         data = {
-    #             'allss_company_id': company_id,
-    #             'allss_account_id': account_id,
-    #             'allss_date': allss_date,
-    #             'allss_debit': 0.0,
-    #             'allss_credit': 0.0,
-    #             'allss_group_id': group_5,
-    #             'allss_parent_id_6': parent_6,
-    #             'allss_parent_id_5': parent_5,
-    #             'allss_parent_id_4': parent_4,
-    #             'allss_parent_id_3': parent_3,
-    #             'allss_previous_balance': prev.allss_final_balance if prev else 0.0,
-    #             'allss_final_balance': prev.allss_final_balance if prev else 0.0,
-    #         }
-
-    #         # Cria registro do balancete do mês atual
-    #         self.env['allss.balance.account.structure'].create(data)
-    #         self.env.cr.commit()
-
-    #     return True
-
-
-
-    # def execute_sql(self):
-    #     # Limpa a tabela antes de inserir
-    #     self._cr.execute("DELETE FROM public.allss_balance_account_structure;")
-
-    #     sql = """
-    #     WITH
-       
-    #     base_sum AS (
-    #         SELECT
-    #             aml.company_id AS allss_company_id,
-    #             aml.account_id AS allss_account_id,
-    #             aml.date AS allss_date,
-    #             SUM(aml.debit) AS allss_debit,
-    #             SUM(aml.credit) AS allss_credit
-    #         FROM account_move_line aml
-    #         GROUP BY aml.company_id, aml.account_id, aml.date
-    #     ),
-
-      
-    #     mv_sum AS (
-    #         SELECT
-    #             bs.*,
-    #             SUM(bs.allss_debit - bs.allss_credit) OVER (
-    #                 PARTITION BY bs.allss_company_id, bs.allss_account_id
-    #                 ORDER BY bs.allss_date
-    #                 ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-    #             ) AS allss_final_balance
-    #         FROM base_sum bs
-    #     ),
-
-       
-    #     with_prev AS (
-    #         SELECT
-    #             mv.*,
-    #             LAG(allss_final_balance, 1, 0) OVER (
-    #                 PARTITION BY allss_company_id, allss_account_id
-    #                 ORDER BY allss_date
-    #             ) AS allss_previous_balance
-    #         FROM mv_sum mv
-    #     ),
-
-        
-    #     account_groups AS (
-    #         SELECT
-    #             rel.account_account_id,
-    #             rel.allss_account_group_id
-    #         FROM account_account_allss_account_group_rel rel
-    #     )
-
-     
-    #     INSERT INTO public.allss_balance_account_structure (
-    #         allss_company_id,
-    #         allss_account_id,
-    #         allss_group_id,
-    #         allss_parent_id_3,
-    #         allss_parent_id_4,
-    #         allss_parent_id_5,
-    #         allss_parent_id_6,
-    #         allss_date,
-    #         allss_debit,
-    #         allss_credit,
-    #         allss_previous_balance,
-    #         allss_final_balance
-    #     )
-    #     SELECT
-    #         wp.allss_company_id,
-    #         wp.allss_account_id,
-    #         ag.id AS allss_group_id,
-    #         ag3.id AS allss_parent_id_3,
-    #         ag4.id AS allss_parent_id_4,
-    #         ag5.id AS allss_parent_id_5,
-    #         ag6.id AS allss_parent_id_6,
-    #         wp.allss_date,
-    #         wp.allss_debit,
-    #         wp.allss_credit,
-    #         wp.allss_previous_balance,
-    #         wp.allss_final_balance
-    #     FROM with_prev wp
-    #     LEFT JOIN account_groups agr ON agr.account_account_id = wp.allss_account_id
-    #     LEFT JOIN allss_account_group ag ON ag.id = agr.allss_account_group_id
-    #     LEFT JOIN allss_account_group ag3 ON ag3.id = ag.allss_account_bridge_id
-    #     LEFT JOIN allss_account_group ag4 ON ag4.id = ag3.allss_account_bridge_id
-    #     LEFT JOIN allss_account_group ag5 ON ag5.id = ag4.allss_account_bridge_id
-    #     LEFT JOIN allss_account_group ag6 ON ag6.id = ag5.allss_account_bridge_id
-    #     ORDER BY wp.allss_company_id, wp.allss_account_id, wp.allss_date;
-    #     """
-
-    #     # Executa a query
-    #     self._cr.execute(sql)
-
-    #     # Atualiza sequência
-    #     self._cr.execute("""
-    #         BEGIN;
-    #             LOCK TABLE allss_balance_account_structure IN EXCLUSIVE MODE;
-    #             SELECT setval(
-    #                 'allss_balance_account_structure_id_seq',
-    #                 COALESCE((SELECT MAX(id)+1 FROM allss_balance_account_structure), 1),
-    #                 false
-    #             );
-    #         COMMIT;
-    #     """)
 
 
     def execute_sql(self):
-        # Limpa a tabela
+        # Limpa a tabela antes de inserir
         self._cr.execute("DELETE FROM public.allss_balance_account_structure;")
 
         sql = """
-            WITH base_data AS (
-                SELECT
-                    bas.allss_company_id,
-                    bas.allss_account_id,
-                    bas.allss_group_id,
-                    bas.allss_parent_id_3,
-                    bas.allss_parent_id_4,
-                    bas.allss_parent_id_5,
-                    bas.allss_parent_id_6,
-                    bas.allss_date,
-                    bas.allss_debit,
-                    bas.allss_credit,
-                    bas.allss_previous_balance,
-                    -- Calculando a primeira ocorrência do saldo anterior
-                    ROW_NUMBER() OVER (
-                        PARTITION BY bas.allss_company_id, bas.allss_account_id
-                        ORDER BY bas.allss_date
-                    ) AS row_num
-                FROM allss_balance_account_structure bas
-            ),
-            
-            calculated_data AS (
-                SELECT
-                    b.*,
-                    -- Apenas o primeiro saldo anterior é considerado
-                    CASE
-                        WHEN b.row_num = 1 THEN b.allss_previous_balance
-                        ELSE 0
-                    END AS allss_previous_balance_once
-                FROM base_data b
-            )
-
-            -- Inserção final considerando os dados calculados corretamente
-            INSERT INTO public.allss_balance_account_structure (
-                allss_company_id,
-                allss_account_id,
-                allss_group_id,
-                allss_parent_id_3,
-                allss_parent_id_4,
-                allss_parent_id_5,
-                allss_parent_id_6,
-                allss_date,
-                allss_debit,
-                allss_credit,
-                allss_previous_balance,
-                allss_final_balance
-            )
+        WITH
+       
+        base_sum AS (
             SELECT
-                t.allss_company_id,
-                t.allss_account_id,
-                t.allss_group_id,
-                t.allss_parent_id_3,
-                t.allss_parent_id_4,
-                t.allss_parent_id_5,
-                t.allss_parent_id_6,
-                t.allss_date,
+                aml.company_id AS allss_company_id,
+                aml.account_id AS allss_account_id,
+                aml.date AS allss_date,
+                SUM(aml.debit) AS allss_debit,
+                SUM(aml.credit) AS allss_credit
+            FROM account_move_line aml
+            GROUP BY aml.company_id, aml.account_id, aml.date
+        ),
 
-                -- Débito e crédito somam normalmente
-                SUM(t.allss_debit)  AS allss_debit,
-                SUM(t.allss_credit) AS allss_credit,
+      
+        mv_sum AS (
+            SELECT
+                bs.*,
+                SUM(bs.allss_debit - bs.allss_credit) OVER (
+                    PARTITION BY bs.allss_company_id, bs.allss_account_id
+                    ORDER BY bs.allss_date
+                    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                ) AS allss_final_balance
+            FROM base_sum bs
+        ),
 
-                -- Somando saldo anterior uma vez (apenas para o primeiro)
-                SUM(t.allss_previous_balance_once) AS allss_previous_balance,
+       
+        with_prev AS (
+            SELECT
+                mv.*,
+                LAG(allss_final_balance, 1, 0) OVER (
+                    PARTITION BY allss_company_id, allss_account_id
+                    ORDER BY allss_date
+                ) AS allss_previous_balance
+            FROM mv_sum mv
+        ),
 
-                -- Calculando o saldo final (salvo anterior + débitos - créditos)
-                SUM(t.allss_previous_balance_once)
-                + SUM(t.allss_debit)
-                - SUM(t.allss_credit) AS allss_final_balance
+        
+        account_groups AS (
+            SELECT
+                rel.account_account_id,
+                rel.allss_account_group_id
+            FROM account_account_allss_account_group_rel rel
+        )
 
-            FROM calculated_data t
-
-            GROUP BY
-                t.allss_company_id,
-                t.allss_account_id,
-                t.allss_group_id,
-                t.allss_parent_id_3,
-                t.allss_parent_id_4,
-                t.allss_parent_id_5,
-                t.allss_parent_id_6,
-                t.allss_date
-            ORDER BY
-                t.allss_company_id,
-                t.allss_account_id,
-                t.allss_date
+     
+        INSERT INTO public.allss_balance_account_structure (
+            allss_company_id,
+            allss_account_id,
+            allss_group_id,
+            allss_parent_id_3,
+            allss_parent_id_4,
+            allss_parent_id_5,
+            allss_parent_id_6,
+            allss_date,
+            allss_debit,
+            allss_credit,
+            allss_previous_balance,
+            allss_final_balance
+        )
+        SELECT
+            wp.allss_company_id,
+            wp.allss_account_id,
+            ag.id AS allss_group_id,
+            ag3.id AS allss_parent_id_3,
+            ag4.id AS allss_parent_id_4,
+            ag5.id AS allss_parent_id_5,
+            ag6.id AS allss_parent_id_6,
+            wp.allss_date,
+            wp.allss_debit,
+            wp.allss_credit,
+            wp.allss_previous_balance,
+            wp.allss_final_balance
+        FROM with_prev wp
+        LEFT JOIN account_groups agr ON agr.account_account_id = wp.allss_account_id
+        LEFT JOIN allss_account_group ag ON ag.id = agr.allss_account_group_id
+        LEFT JOIN allss_account_group ag3 ON ag3.id = ag.allss_account_bridge_id
+        LEFT JOIN allss_account_group ag4 ON ag4.id = ag3.allss_account_bridge_id
+        LEFT JOIN allss_account_group ag5 ON ag5.id = ag4.allss_account_bridge_id
+        LEFT JOIN allss_account_group ag6 ON ag6.id = ag5.allss_account_bridge_id
+        ORDER BY wp.allss_company_id, wp.allss_account_id, wp.allss_date;
         """
 
-        # Executa a consulta
+        # Executa a query
         self._cr.execute(sql)
 
-        # Atualiza a sequência
+        # Atualiza sequência
         self._cr.execute("""
             BEGIN;
                 LOCK TABLE allss_balance_account_structure IN EXCLUSIVE MODE;
@@ -496,6 +309,113 @@ class BalanceAccountStructure(models.Model):
                 );
             COMMIT;
         """)
+
+
+    # def execute_sql(self):
+    #     # Limpa a tabela
+    #     self._cr.execute("DELETE FROM public.allss_balance_account_structure;")
+
+    #     sql = """
+    #         WITH base_data AS (
+    #             SELECT
+    #                 bas.allss_company_id,
+    #                 bas.allss_account_id,
+    #                 bas.allss_group_id,
+    #                 bas.allss_parent_id_3,
+    #                 bas.allss_parent_id_4,
+    #                 bas.allss_parent_id_5,
+    #                 bas.allss_parent_id_6,
+    #                 bas.allss_date,
+    #                 bas.allss_debit,
+    #                 bas.allss_credit,
+    #                 bas.allss_previous_balance,
+    #                 -- Calculando a primeira ocorrência do saldo anterior
+    #                 ROW_NUMBER() OVER (
+    #                     PARTITION BY bas.allss_company_id, bas.allss_account_id
+    #                     ORDER BY bas.allss_date
+    #                 ) AS row_num
+    #             FROM allss_balance_account_structure bas
+    #         ),
+            
+    #         calculated_data AS (
+    #             SELECT
+    #                 b.*,
+    #                 -- Apenas o primeiro saldo anterior é considerado
+    #                 CASE
+    #                     WHEN b.row_num = 1 THEN b.allss_previous_balance
+    #                     ELSE 0
+    #                 END AS allss_previous_balance_once
+    #             FROM base_data b
+    #         )
+
+    #         -- Inserção final considerando os dados calculados corretamente
+    #         INSERT INTO public.allss_balance_account_structure (
+    #             allss_company_id,
+    #             allss_account_id,
+    #             allss_group_id,
+    #             allss_parent_id_3,
+    #             allss_parent_id_4,
+    #             allss_parent_id_5,
+    #             allss_parent_id_6,
+    #             allss_date,
+    #             allss_debit,
+    #             allss_credit,
+    #             allss_previous_balance,
+    #             allss_final_balance
+    #         )
+    #         SELECT
+    #             t.allss_company_id,
+    #             t.allss_account_id,
+    #             t.allss_group_id,
+    #             t.allss_parent_id_3,
+    #             t.allss_parent_id_4,
+    #             t.allss_parent_id_5,
+    #             t.allss_parent_id_6,
+    #             t.allss_date,
+
+    #             -- Débito e crédito somam normalmente
+    #             SUM(t.allss_debit)  AS allss_debit,
+    #             SUM(t.allss_credit) AS allss_credit,
+
+    #             -- Somando saldo anterior uma vez (apenas para o primeiro)
+    #             SUM(t.allss_previous_balance_once) AS allss_previous_balance,
+
+    #             -- Calculando o saldo final (salvo anterior + débitos - créditos)
+    #             SUM(t.allss_previous_balance_once)
+    #             + SUM(t.allss_debit)
+    #             - SUM(t.allss_credit) AS allss_final_balance
+
+    #         FROM calculated_data t
+
+    #         GROUP BY
+    #             t.allss_company_id,
+    #             t.allss_account_id,
+    #             t.allss_group_id,
+    #             t.allss_parent_id_3,
+    #             t.allss_parent_id_4,
+    #             t.allss_parent_id_5,
+    #             t.allss_parent_id_6,
+    #             t.allss_date
+    #         ORDER BY
+    #             t.allss_company_id,
+    #             t.allss_account_id,
+    #             t.allss_date
+    #     """
+
+    #     # Executa a consulta
+    #     self._cr.execute(sql)
+
+    #     # Atualiza a sequência
+    #     self._cr.execute("""
+    #         BEGIN;
+    #             LOCK TABLE allss_balance_account_structure IN EXCLUSIVE MODE;
+    #             SELECT setval(
+    #                 'allss_balance_account_structure_id_seq',
+    #                 COALESCE((SELECT MAX(id)+1 FROM allss_balance_account_structure), 1),
+    #                 false
+    #             );
+    #         COMMIT;
+    #     """)
 
 
 
