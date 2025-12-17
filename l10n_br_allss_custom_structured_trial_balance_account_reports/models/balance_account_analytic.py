@@ -286,8 +286,9 @@ class BalanceAccountAnalytic(models.Model):
         # Limpa a tabela
         cr.execute("DELETE FROM allss_balance_account_analytic;")
 
-        # Garante que nunca entra None no SQL
-        account_analytic_id = account_analytic_def(self)[0] or 'NULL'
+        # Analítica default (garante SQL válido)
+        account_analytic_id = account_analytic_def(self)[0]
+        account_analytic_id = account_analytic_id if account_analytic_id else 'NULL'
 
         sql = f"""
         WITH aml_base AS (
@@ -378,7 +379,7 @@ class BalanceAccountAnalytic(models.Model):
             g4.id,
             g3.id,
 
-            acc.group_id,
+            acc.account_group_id,
             f.account_id,
             f.analytic_account_id,
             f.date,
@@ -392,7 +393,7 @@ class BalanceAccountAnalytic(models.Model):
         JOIN account_account acc
             ON acc.id = f.account_id
         LEFT JOIN account_group g3
-            ON g3.id = acc.group_id
+            ON g3.id = acc.account_group_id
         LEFT JOIN account_group g4
             ON g4.id = g3.parent_id
         LEFT JOIN account_group g5
@@ -403,7 +404,7 @@ class BalanceAccountAnalytic(models.Model):
 
         cr.execute(sql)
 
-        # Ajusta a sequence
+        # Ajusta sequence
         cr.execute("""
             BEGIN;
                 LOCK TABLE allss_balance_account_analytic IN EXCLUSIVE MODE;
@@ -414,6 +415,7 @@ class BalanceAccountAnalytic(models.Model):
                 );
             COMMIT;
         """)
+
 
 
 
