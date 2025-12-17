@@ -344,11 +344,6 @@ class BalanceAccountAnalytic(models.Model):
             write_uid,
             write_date,
             allss_company_id,
-            allss_parent_id_6,
-            allss_parent_id_5,
-            allss_parent_id_4,
-            allss_parent_id_3,
-            allss_group_id,
             allss_account_id,
             allss_account_analytic_id,
             allss_date,
@@ -365,13 +360,6 @@ class BalanceAccountAnalytic(models.Model):
             CURRENT_DATE,
 
             f.company_id,
-
-            NULL,
-            NULL,
-            NULL,
-            g3.id,
-
-            g3.id,
             f.account_id,
             f.analytic_account_id,
             f.date,
@@ -381,13 +369,7 @@ class BalanceAccountAnalytic(models.Model):
             f.credit,
             f.final_balance
 
-        FROM aml_final f
-        JOIN account_account acc
-            ON acc.id = f.account_id
-
-        LEFT JOIN account_group g3
-            ON g3.internal_group = acc.internal_group
-        AND g3.parent_id IS NULL;
+        FROM aml_final f;
         """
 
         cr.execute(sql)
@@ -402,6 +384,7 @@ class BalanceAccountAnalytic(models.Model):
                 );
             COMMIT;
         """)
+
 
 
 
