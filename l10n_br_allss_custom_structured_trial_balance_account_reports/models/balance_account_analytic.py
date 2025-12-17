@@ -284,6 +284,49 @@ class BalanceAccountAnalytic(models.Model):
         account_analytic_id = account_analytic_def(self)[0]
 
         sql = f"""
+        WITH aml_base AS (
+            -- 1) Base mensal por conta / analítica
+            SELECT
+                aml.company_id,
+                aml.account_id,
+                date_trunc('month', aml.date)::date AS date,
+                COALESCE(ad.account_id, {account_analytic_id}) AS analytic_account_id,
+                SUM(aml.debit) AS debit,
+                SUM(aml.credit) AS credit
+            FROM account_move_line aml
+            JOIN account_move am ON am.id = aml.move_id AND am.state = 'posted'
+            LEFT JOIN LATERAL (
+                SELECT (jsonb_object_keys(aml.analytic_distribution))::int AS account_id
+            ) ad ON TRUE
+            GROUP BY
+                aml.company_id,
+                aml.account_id,
+                date_trunc('month', aml.date),
+                ad.account_id
+        ),
+
+        aml_balance AS (
+            -- 2) Saldo acumulado
+            SELECT
+                b.*,
+                SUM(b.debit - b.credit) OVER (
+                    PARTITION BY b.company_id, b.account_id, b.analytic_account_id
+                    ORDER BY b.date
+                ) AS final_balance
+            FROM aml_base b
+        ),
+
+        aml_final AS (
+            -- 3) Saldo anterior
+            SELECT
+                *,
+                LAG(final_balance, 1, 0) OVER (
+                    PARTITION BY company_id, account_id, analytic_account_id
+                    ORDER BY date
+                ) AS previous_balance
+            FROM aml_balance
+        )
+
         INSERT INTO allss_balance_account_analytic (
             id, create_uid, create_date, write_uid, write_date,
             allss_company_id,
@@ -304,7 +347,7 @@ class BalanceAccountAnalytic(models.Model):
             row_number() OVER () AS id,
             1, CURRENT_DATE, 1, CURRENT_DATE,
 
-            aml.company_id,
+            f.company_id,
 
             g6.id,
             g5.id,
@@ -312,58 +355,17 @@ class BalanceAccountAnalytic(models.Model):
             g3.id,
 
             acc.group_id,
-            aml.account_id,
+            f.account_id,
+            f.analytic_account_id,
+            f.date,
 
-            COALESCE(ad.account_id, {account_analytic_id}) AS analytic_account_id,
-            date_trunc('month', aml.date)::date AS date,
+            f.previous_balance,
+            f.debit,
+            f.credit,
+            f.final_balance
 
-            prev_balance,
-            debit,
-            credit,
-            balance
-
-        FROM (
-            SELECT
-                aml.company_id,
-                aml.account_id,
-                aml.date,
-
-                SUM(aml.debit) AS debit,
-                SUM(aml.credit) AS credit,
-
-                SUM(SUM(aml.debit - aml.credit)) OVER (
-                    PARTITION BY aml.company_id, aml.account_id, ad.account_id
-                    ORDER BY date_trunc('month', aml.date)
-                ) AS balance,
-
-                LAG(
-                    SUM(SUM(aml.debit - aml.credit)) OVER (
-                        PARTITION BY aml.company_id, aml.account_id, ad.account_id
-                        ORDER BY date_trunc('month', aml.date)
-                    ),
-                    1, 0
-                ) OVER (
-                    PARTITION BY aml.company_id, aml.account_id, ad.account_id
-                    ORDER BY date_trunc('month', aml.date)
-                ) AS prev_balance,
-
-                ad.account_id
-
-            FROM account_move_line aml
-            JOIN account_move am ON am.id = aml.move_id AND am.state = 'posted'
-
-            LEFT JOIN LATERAL (
-                SELECT (jsonb_object_keys(aml.analytic_distribution))::int AS account_id
-            ) ad ON TRUE
-
-            GROUP BY
-                aml.company_id,
-                aml.account_id,
-                aml.date,
-                ad.account_id
-        ) aml
-
-        JOIN account_account acc ON acc.id = aml.account_id
+        FROM aml_final f
+        JOIN account_account acc ON acc.id = f.account_id
         LEFT JOIN account_group g3 ON g3.id = acc.group_id
         LEFT JOIN account_group g4 ON g4.id = g3.parent_id
         LEFT JOIN account_group g5 ON g5.id = g4.parent_id
@@ -382,6 +384,7 @@ class BalanceAccountAnalytic(models.Model):
                 );
             COMMIT;
         """)
+
 
 
 
