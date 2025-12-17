@@ -278,12 +278,13 @@ class BalanceAccountAnalytic(models.Model):
 
 
     def execute_sql(self):
-        self._cr.execute("DELETE FROM public.allss_balance_account_analytic;")
+        cr = self._cr
+        cr.execute("DELETE FROM allss_balance_account_analytic;")
 
         account_analytic_id = account_analytic_def(self)[0]
 
         sql = f"""
-        INSERT INTO public.allss_balance_account_analytic(
+        INSERT INTO allss_balance_account_analytic (
             id, create_uid, create_date, write_uid, write_date,
             allss_company_id,
             allss_parent_id_6,
@@ -301,12 +302,9 @@ class BalanceAccountAnalytic(models.Model):
         )
         SELECT
             row_number() OVER () AS id,
-            1,
-            CURRENT_DATE,
-            1,
-            CURRENT_DATE,
+            1, CURRENT_DATE, 1, CURRENT_DATE,
 
-            wp.company_id,
+            aml.company_id,
 
             g6.id,
             g5.id,
@@ -314,69 +312,67 @@ class BalanceAccountAnalytic(models.Model):
             g3.id,
 
             acc.group_id,
-            wp.account_id,
+            aml.account_id,
 
-            wp.analytic_account_id,
-            wp.date,
-            wp.previous_balance,
-            wp.debit,
-            wp.credit,
-            wp.final_balance
+            COALESCE(ad.account_id, {account_analytic_id}) AS analytic_account_id,
+            date_trunc('month', aml.date)::date AS date,
+
+            prev_balance,
+            debit,
+            credit,
+            balance
 
         FROM (
             SELECT
                 aml.company_id,
                 aml.account_id,
-                COALESCE(aml.analytic_account_id, {account_analytic_id}) AS analytic_account_id,
-                date_trunc('month', aml.date)::date AS date,
+                aml.date,
 
                 SUM(aml.debit) AS debit,
                 SUM(aml.credit) AS credit,
 
                 SUM(SUM(aml.debit - aml.credit)) OVER (
-                    PARTITION BY aml.company_id,
-                                aml.account_id,
-                                COALESCE(aml.analytic_account_id, {account_analytic_id})
+                    PARTITION BY aml.company_id, aml.account_id, ad.account_id
                     ORDER BY date_trunc('month', aml.date)
-                ) AS final_balance,
+                ) AS balance,
 
                 LAG(
                     SUM(SUM(aml.debit - aml.credit)) OVER (
-                        PARTITION BY aml.company_id,
-                                    aml.account_id,
-                                    COALESCE(aml.analytic_account_id, {account_analytic_id})
+                        PARTITION BY aml.company_id, aml.account_id, ad.account_id
                         ORDER BY date_trunc('month', aml.date)
                     ),
-                    1,
-                    0
+                    1, 0
                 ) OVER (
-                    PARTITION BY aml.company_id,
-                                aml.account_id,
-                                COALESCE(aml.analytic_account_id, {account_analytic_id})
+                    PARTITION BY aml.company_id, aml.account_id, ad.account_id
                     ORDER BY date_trunc('month', aml.date)
-                ) AS previous_balance
+                ) AS prev_balance,
+
+                ad.account_id
 
             FROM account_move_line aml
-            JOIN account_move am ON am.id = aml.move_id
-            WHERE am.state = 'posted'
+            JOIN account_move am ON am.id = aml.move_id AND am.state = 'posted'
+
+            LEFT JOIN LATERAL (
+                SELECT (jsonb_object_keys(aml.analytic_distribution))::int AS account_id
+            ) ad ON TRUE
+
             GROUP BY
                 aml.company_id,
                 aml.account_id,
-                COALESCE(aml.analytic_account_id, {account_analytic_id}),
-                date_trunc('month', aml.date)
-        ) wp
+                aml.date,
+                ad.account_id
+        ) aml
 
-        JOIN account_account acc ON acc.id = wp.account_id
-
+        JOIN account_account acc ON acc.id = aml.account_id
         LEFT JOIN account_group g3 ON g3.id = acc.group_id
         LEFT JOIN account_group g4 ON g4.id = g3.parent_id
         LEFT JOIN account_group g5 ON g5.id = g4.parent_id
         LEFT JOIN account_group g6 ON g6.id = g5.parent_id;
         """
 
-        self._cr.execute(sql)
+        cr.execute(sql)
 
-        self._cr.execute("""
+        cr.execute("""
             BEGIN;
                 LOCK TABLE allss_balance_account_analytic IN EXCLUSIVE MODE;
                 SELECT setval(
