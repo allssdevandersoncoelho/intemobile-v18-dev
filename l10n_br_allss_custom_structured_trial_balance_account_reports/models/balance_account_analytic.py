@@ -282,104 +282,70 @@ class BalanceAccountAnalytic(models.Model):
 
     def execute_sql(self):
         cr = self._cr
+
+        # Limpa a tabela destino
         cr.execute("DELETE FROM allss_balance_account_analytic;")
 
-        account_analytic_id = account_analytic_def(self)[0] or 0
+        # Conta analítica padrão (NUNCA usar 0)
+        account_analytic_id = account_analytic_def(self)[0]
 
         sql = f"""
-        WITH base_moves AS (
+        WITH aml_base AS (
             SELECT
                 aml.company_id,
                 aml.account_id,
-                COALESCE(ad.account_id, {account_analytic_id}) AS analytic_account_id,
-                aml.date,
-                aml.debit,
-                aml.credit
+                date_trunc('month', aml.date)::date AS date,
+
+                -- Analítica fiel ao SQL original (sem 0)
+                CASE
+                    WHEN ad.account_id IS NOT NULL THEN ad.account_id
+                    ELSE {account_analytic_id if account_analytic_id else 'NULL'}
+                END AS analytic_account_id,
+
+                SUM(aml.debit) AS debit,
+                SUM(aml.credit) AS credit
+
             FROM account_move_line aml
             JOIN account_move am
                 ON am.id = aml.move_id
             AND am.state = 'posted'
+
+            -- Quebra a distribuição analítica (Odoo 14+)
             LEFT JOIN LATERAL (
                 SELECT (jsonb_object_keys(aml.analytic_distribution))::int AS account_id
             ) ad ON TRUE
+
+            GROUP BY
+                aml.company_id,
+                aml.account_id,
+                date_trunc('month', aml.date),
+                ad.account_id
         ),
 
-        min_dates AS (
+        aml_balance AS (
             SELECT
-                company_id,
-                account_id,
-                analytic_account_id,
-                MIN(date) AS min_date
-            FROM base_moves
-            GROUP BY company_id, account_id, analytic_account_id
-        ),
-
-        generated_months AS (
-            SELECT
-                md.company_id,
-                md.account_id,
-                md.analytic_account_id,
-                generate_series(
-                    date_trunc('month', md.min_date),
-                    date_trunc('month', CURRENT_DATE),
-                    '1 month'
-                )::date AS date
-            FROM min_dates md
-        ),
-
-        missing_months AS (
-            SELECT
-                gm.company_id,
-                gm.account_id,
-                gm.analytic_account_id,
-                gm.date,
-                0::numeric AS debit,
-                0::numeric AS credit
-            FROM generated_months gm
-            LEFT JOIN base_moves bm
-                ON bm.company_id = gm.company_id
-            AND bm.account_id = gm.account_id
-            AND bm.analytic_account_id = gm.analytic_account_id
-            AND date_trunc('month', bm.date) = gm.date
-            WHERE bm.date IS NULL
-        ),
-
-        real_moves AS (
-            SELECT
-                company_id,
-                account_id,
-                analytic_account_id,
-                date,
-                SUM(debit) AS debit,
-                SUM(credit) AS credit
-            FROM base_moves
-            GROUP BY company_id, account_id, analytic_account_id, date
-        ),
-
-        all_lines AS (
-            SELECT * FROM real_moves
-            UNION ALL
-            SELECT * FROM missing_months
-        ),
-
-        balances AS (
-            SELECT
-                l.*,
-                SUM(l.debit - l.credit) OVER (
-                    PARTITION BY company_id, account_id, analytic_account_id
-                    ORDER BY date
+                b.*,
+                SUM(b.debit - b.credit) OVER (
+                    PARTITION BY
+                        b.company_id,
+                        b.account_id,
+                        b.analytic_account_id
+                    ORDER BY b.date
                 ) AS final_balance
-            FROM all_lines l
+            FROM aml_base b
         ),
 
-        final AS (
+        aml_final AS (
             SELECT
                 *,
                 LAG(final_balance, 1, 0) OVER (
-                    PARTITION BY company_id, account_id, analytic_account_id
+                    PARTITION BY
+                        company_id,
+                        account_id,
+                        analytic_account_id
                     ORDER BY date
                 ) AS previous_balance
-            FROM balances
+            FROM aml_balance
         )
 
         INSERT INTO allss_balance_account_analytic (
@@ -388,6 +354,7 @@ class BalanceAccountAnalytic(models.Model):
             create_date,
             write_uid,
             write_date,
+
             allss_company_id,
             allss_account_id,
             allss_account_analytic_id,
@@ -399,21 +366,26 @@ class BalanceAccountAnalytic(models.Model):
         )
         SELECT
             row_number() OVER () AS id,
-            1, CURRENT_DATE, 1, CURRENT_DATE,
-            company_id,
-            account_id,
-            analytic_account_id,
-            date,
-            previous_balance,
-            debit,
-            credit,
-            final_balance
-        FROM final
-        ORDER BY company_id, analytic_account_id, account_id, date;
+            1,
+            CURRENT_DATE,
+            1,
+            CURRENT_DATE,
+
+            f.company_id,
+            f.account_id,
+            f.analytic_account_id,
+            f.date,
+            f.previous_balance,
+            f.debit,
+            f.credit,
+            f.final_balance
+
+        FROM aml_final f;
         """
 
         cr.execute(sql)
 
+        # Sincroniza a sequence
         cr.execute("""
             BEGIN;
                 LOCK TABLE allss_balance_account_analytic IN EXCLUSIVE MODE;
@@ -424,6 +396,7 @@ class BalanceAccountAnalytic(models.Model):
                 );
             COMMIT;
         """)
+
 
 
 
