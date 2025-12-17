@@ -151,7 +151,6 @@ class BalanceAccountStructure(models.Model):
         if not result or not fields:
             return result
 
-        # 🔹 Coleta todos os domínios de grupo
         group_domains = [
             group['__domain']
             for group in result
@@ -161,7 +160,6 @@ class BalanceAccountStructure(models.Model):
         if not group_domains:
             return result
 
-        # 🔹 Constrói um domínio OR gigante (dom1 OR dom2 OR dom3 ...)
         if len(group_domains) == 1:
             big_domain = group_domains[0]
         else:
@@ -169,13 +167,11 @@ class BalanceAccountStructure(models.Model):
             for dom in group_domains:
                 big_domain += dom
 
-        # 🔹 Busca tudo de uma vez, já ordenado
         records = self.search(
             big_domain,
             order='allss_company_id, allss_account_id, allss_date asc, id asc'
         )
 
-        # 🔹 Guarda o primeiro saldo por combinação relevante
         first_balance_map = {}
 
         for rec in records:
@@ -189,11 +185,9 @@ class BalanceAccountStructure(models.Model):
                 rec.allss_group_id.id if rec.allss_group_id else None,
             )
 
-            # só o primeiro registro do grupo interessa
             if key not in first_balance_map:
                 first_balance_map[key] = rec.allss_previous_balance or 0.0
 
-        # 🔹 Aplica os valores calculados
         for group_line in result:
             key = (
                 group_line.get('allss_company_id'),

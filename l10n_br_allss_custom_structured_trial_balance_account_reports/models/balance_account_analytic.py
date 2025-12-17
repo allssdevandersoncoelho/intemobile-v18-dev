@@ -110,11 +110,14 @@ class BalanceAccountAnalytic(models.Model):
 
 
 
+    
+
     # def execute_sql(self):
     #     # Limpa a tabela antes de inserir
     #     self._cr.execute("DELETE FROM public.allss_balance_account_analytic;")
         
-    #     account_analytic_id = account_analytic_def(self)[0]
+    #     # ID da conta analítica padrão (pode ser None)
+    #     account_analytic_id = account_analytic_def(self)[0] or 'NULL'
 
     #     sql = f"""
     #     WITH
@@ -123,7 +126,7 @@ class BalanceAccountAnalytic(models.Model):
     #         SELECT
     #             aml.company_id,
     #             aml.account_id,
-    #             (kv.key)::int AS analytic_account_id,
+    #             NULLIF((kv.key)::int, 0) AS analytic_account_id,  -- evita ID=0
     #             (kv.value)::numeric AS weight,
     #             aml.debit,
     #             aml.credit,
@@ -134,12 +137,12 @@ class BalanceAccountAnalytic(models.Model):
     #         AND aml.analytic_distribution::text <> '{{}}'
     #     ),
 
-    #     -- Linhas sem distribuição, atribuídas a conta analítica padrão
+    #     -- Linhas sem distribuição, atribuídas a conta analítica padrão OU NULL
     #     nodist AS (
     #         SELECT
     #             aml.company_id,
     #             aml.account_id,
-    #             {account_analytic_id}::int AS analytic_account_id,
+    #             NULLIF({account_analytic_id}, 0)::int AS analytic_account_id,  -- nunca 0
     #             1.0::numeric AS weight,
     #             aml.debit,
     #             aml.credit,
@@ -156,6 +159,17 @@ class BalanceAccountAnalytic(models.Model):
     #         SELECT * FROM nodist
     #     ),
 
+    #     -- Mantém SOMENTE IDs válidos que existam em account_analytic_account
+    #     valid_rows AS (
+    #         SELECT
+    #             r.*
+    #         FROM all_rows r
+    #         LEFT JOIN account_analytic_account aac
+    #             ON aac.id = r.analytic_account_id
+    #         WHERE r.analytic_account_id IS NULL
+    #         OR aac.id IS NOT NULL  -- garante FK existente
+    #     ),
+
     #     -- Aplica o peso
     #     normalized AS (
     #         SELECT
@@ -166,10 +180,10 @@ class BalanceAccountAnalytic(models.Model):
     #             debit,
     #             credit,
     #             CASE WHEN weight > 1 THEN weight / 100.0 ELSE weight END AS normalized_weight
-    #         FROM all_rows
+    #         FROM valid_rows
     #     ),
 
-    #     -- Soma por linha de data real (não apenas mês)
+    #     -- Soma por linha de data real (não só por mês)
     #     summed AS (
     #         SELECT
     #             company_id,
@@ -262,120 +276,131 @@ class BalanceAccountAnalytic(models.Model):
     #         COMMIT;
     #     """)
 
+
     def execute_sql(self):
-        # Limpa a tabela antes de inserir
         self._cr.execute("DELETE FROM public.allss_balance_account_analytic;")
-        
-        # ID da conta analítica padrão (pode ser None)
-        account_analytic_id = account_analytic_def(self)[0] or 'NULL'
+
+        default_analytic_id = int(account_analytic_def(self)[0] or 0)
 
         sql = f"""
         WITH
-        -- Linhas com distribuição analítica
+        -- 1) Datas mensais (generate_series)
+        months AS (
+            SELECT date_trunc('month', dd)::date AS month_date
+            FROM generate_series(
+                (SELECT MIN(date) FROM account_move_line),
+                date_trunc('month', CURRENT_DATE) + INTERVAL '1 month',
+                INTERVAL '1 month'
+            ) dd
+        ),
+
+        -- 2) Movimentos normalizados (com distribuição)
         dist AS (
             SELECT
                 aml.company_id,
                 aml.account_id,
-                NULLIF((kv.key)::int, 0) AS analytic_account_id,  -- evita ID=0
-                (kv.value)::numeric AS weight,
-                aml.debit,
-                aml.credit,
-                aml.date
+                NULLIF(kv.key::int, 0) AS analytic_account_id,
+                aml.date,
+                aml.debit * (CASE WHEN kv.value > 1 THEN kv.value / 100.0 ELSE kv.value END) AS debit,
+                aml.credit * (CASE WHEN kv.value > 1 THEN kv.value / 100.0 ELSE kv.value END) AS credit
             FROM account_move_line aml
-            CROSS JOIN LATERAL jsonb_each(aml.analytic_distribution::jsonb) AS kv(key, value)
-            WHERE aml.analytic_distribution IS NOT NULL
-            AND aml.analytic_distribution::text <> '{{}}'
+            JOIN LATERAL jsonb_each(aml.analytic_distribution::jsonb) kv(key, value)
+                ON aml.analytic_distribution IS NOT NULL
+            JOIN account_move m ON m.id = aml.move_id AND m.state = 'posted'
         ),
 
-        -- Linhas sem distribuição, atribuídas a conta analítica padrão OU NULL
+        -- 3) Movimentos sem distribuição
         nodist AS (
             SELECT
                 aml.company_id,
                 aml.account_id,
-                NULLIF({account_analytic_id}, 0)::int AS analytic_account_id,  -- nunca 0
-                1.0::numeric AS weight,
+                NULLIF({default_analytic_id}, 0) AS analytic_account_id,
+                aml.date,
                 aml.debit,
-                aml.credit,
-                aml.date
+                aml.credit
             FROM account_move_line aml
+            JOIN account_move m ON m.id = aml.move_id AND m.state = 'posted'
             WHERE aml.analytic_distribution IS NULL
-            OR aml.analytic_distribution::text = '{{}}'
+            OR aml.analytic_distribution = '{{}}'
         ),
 
-        -- Une todas as linhas
-        all_rows AS (
+        -- 4) União de todos os movimentos
+        all_moves AS (
             SELECT * FROM dist
             UNION ALL
             SELECT * FROM nodist
         ),
 
-        -- Mantém SOMENTE IDs válidos que existam em account_analytic_account
-        valid_rows AS (
-            SELECT
-                r.*
-            FROM all_rows r
-            LEFT JOIN account_analytic_account aac
-                ON aac.id = r.analytic_account_id
-            WHERE r.analytic_account_id IS NULL
-            OR aac.id IS NOT NULL  -- garante FK existente
+        -- 5) Combinações base (empresa × conta × analítica × mês)
+        base AS (
+            SELECT DISTINCT
+                m.company_id,
+                m.account_id,
+                m.analytic_account_id,
+                mo.month_date
+            FROM all_moves m
+            CROSS JOIN months mo
+            WHERE mo.month_date >= date_trunc('month', m.date)
         ),
 
-        -- Aplica o peso
-        normalized AS (
-            SELECT
-                company_id,
-                account_id,
-                analytic_account_id,
-                date,
-                debit,
-                credit,
-                CASE WHEN weight > 1 THEN weight / 100.0 ELSE weight END AS normalized_weight
-            FROM valid_rows
-        ),
-
-        -- Soma por linha de data real (não só por mês)
-        summed AS (
+        -- 6) Movimentos agregados por mês
+        monthly AS (
             SELECT
                 company_id,
                 account_id,
                 analytic_account_id,
-                date,
-                SUM(debit * normalized_weight) AS debit,
-                SUM(credit * normalized_weight) AS credit
-            FROM normalized
-            GROUP BY company_id, account_id, analytic_account_id, date
+                date_trunc('month', date)::date AS month_date,
+                SUM(debit) AS debit,
+                SUM(credit) AS credit
+            FROM all_moves
+            GROUP BY company_id, account_id, analytic_account_id, date_trunc('month', date)
         ),
 
-        -- Calcula o saldo final acumulado
+        -- 7) Junta base + movimentos
+        joined AS (
+            SELECT
+                b.company_id,
+                b.account_id,
+                b.analytic_account_id,
+                b.month_date,
+                COALESCE(m.debit, 0) AS debit,
+                COALESCE(m.credit, 0) AS credit
+            FROM base b
+            LEFT JOIN monthly m
+                ON m.company_id = b.company_id
+            AND m.account_id = b.account_id
+            AND m.analytic_account_id IS NOT DISTINCT FROM b.analytic_account_id
+            AND m.month_date = b.month_date
+        ),
+
+        -- 8) Saldo acumulado
         balances AS (
             SELECT
-                company_id AS allss_company_id,
-                account_id AS allss_account_id,
-                analytic_account_id AS allss_account_analytic_id,
-                debit AS allss_debit,
-                credit AS allss_credit,
-                date AS allss_date,
+                company_id,
+                account_id,
+                analytic_account_id,
+                month_date,
+                debit,
+                credit,
                 SUM(debit - credit) OVER (
                     PARTITION BY company_id, account_id, analytic_account_id
-                    ORDER BY date, account_id
-                    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-                ) AS allss_final_balance
-            FROM summed
+                    ORDER BY month_date
+                ) AS final_balance
+            FROM joined
         ),
 
-        -- Calcula saldo anterior (previous_balance)
+        -- 9) Saldo anterior
         with_prev AS (
             SELECT
-                b.*,
-                LAG(allss_final_balance, 1, 0) OVER (
-                    PARTITION BY allss_company_id, allss_account_id, allss_account_analytic_id
-                    ORDER BY allss_date, allss_account_id
-                ) AS allss_previous_balance
-            FROM balances b
+                *,
+                LAG(final_balance, 1, 0) OVER (
+                    PARTITION BY company_id, account_id, analytic_account_id
+                    ORDER BY month_date
+                ) AS previous_balance
+            FROM balances
         )
 
-        -- Insere os resultados na tabela final
-        INSERT INTO public.allss_balance_account_analytic (
+        INSERT INTO allss_balance_account_analytic (
             allss_company_id,
             allss_account_id,
             allss_account_analytic_id,
@@ -384,37 +409,26 @@ class BalanceAccountAnalytic(models.Model):
             allss_debit,
             allss_credit,
             allss_previous_balance,
-            allss_final_balance,
-            allss_group_id,
-            allss_parent_id_3,
-            allss_parent_id_4,
-            allss_parent_id_5,
-            allss_parent_id_6
+            allss_final_balance
         )
         SELECT
-            wp.allss_company_id,
-            wp.allss_account_id,
-            wp.allss_account_analytic_id,
-            aac.plan_id AS allss_analytic_plan_id,
-            wp.allss_date,
-            wp.allss_debit,
-            wp.allss_credit,
-            wp.allss_previous_balance,
-            wp.allss_final_balance,
-            NULL AS allss_group_id,
-            NULL AS allss_parent_id_3,
-            NULL AS allss_parent_id_4,
-            NULL AS allss_parent_id_5,
-            NULL AS allss_parent_id_6
+            wp.company_id,
+            wp.account_id,
+            wp.analytic_account_id,
+            aac.plan_id,
+            wp.month_date,
+            wp.debit,
+            wp.credit,
+            wp.previous_balance,
+            wp.final_balance
         FROM with_prev wp
         LEFT JOIN account_analytic_account aac
-            ON aac.id = wp.allss_account_analytic_id
-        ORDER BY wp.allss_company_id, wp.allss_account_id, wp.allss_account_analytic_id, wp.allss_date;
+            ON aac.id = wp.analytic_account_id
+        ORDER BY wp.company_id, wp.account_id, wp.analytic_account_id, wp.month_date;
         """
 
         self._cr.execute(sql)
 
-        # Atualiza sequência da tabela
         self._cr.execute("""
             BEGIN;
                 LOCK TABLE allss_balance_account_analytic IN EXCLUSIVE MODE;
@@ -425,6 +439,7 @@ class BalanceAccountAnalytic(models.Model):
                 );
             COMMIT;
         """)
+
 
 
 
