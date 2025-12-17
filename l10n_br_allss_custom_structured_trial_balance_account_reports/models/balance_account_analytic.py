@@ -281,7 +281,6 @@ class BalanceAccountAnalytic(models.Model):
         # Limpa a tabela antes de inserir
         self._cr.execute("DELETE FROM public.allss_balance_account_analytic;")
 
-        # Conta analítica padrão (fallback)
         account_analytic_id = int(account_analytic_def(self)[0] or 0)
 
         sql = f"""
@@ -315,7 +314,6 @@ class BalanceAccountAnalytic(models.Model):
                 ON aml.analytic_distribution IS NOT NULL
             AND aml.analytic_distribution::text <> '{{}}'
         ),
-
         nodist AS (
             SELECT
                 aml.company_id,
@@ -331,13 +329,11 @@ class BalanceAccountAnalytic(models.Model):
             WHERE aml.analytic_distribution IS NULL
             OR aml.analytic_distribution::text = '{{}}'
         ),
-
         all_rows AS (
             SELECT * FROM dist
             UNION ALL
             SELECT * FROM nodist
         ),
-
         summed AS (
             SELECT
                 company_id,
@@ -349,7 +345,6 @@ class BalanceAccountAnalytic(models.Model):
             FROM all_rows
             GROUP BY company_id, account_id, analytic_account_id, date
         ),
-
         balances AS (
             SELECT
                 company_id AS allss_company_id,
@@ -361,11 +356,9 @@ class BalanceAccountAnalytic(models.Model):
                 SUM(debit - credit) OVER (
                     PARTITION BY company_id, account_id, analytic_account_id
                     ORDER BY date, account_id
-                    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
                 ) AS allss_final_balance
             FROM summed
         ),
-
         with_prev AS (
             SELECT
                 b.*,
@@ -375,7 +368,6 @@ class BalanceAccountAnalytic(models.Model):
                 ) AS allss_previous_balance
             FROM balances b
         )
-
         INSERT INTO public.allss_balance_account_analytic (
             allss_company_id,
             allss_account_id,
@@ -402,20 +394,14 @@ class BalanceAccountAnalytic(models.Model):
             wp.allss_credit,
             wp.allss_previous_balance,
             wp.allss_final_balance,
-            acc.group_id AS allss_group_id,
-            g3.parent_id AS allss_parent_id_3,
-            g4.parent_id AS allss_parent_id_4,
-            g5.parent_id AS allss_parent_id_5,
-            g6.parent_id AS allss_parent_id_6
+            NULL,
+            NULL,
+            NULL,
+            NULL,
+            NULL
         FROM with_prev wp
         LEFT JOIN account_analytic_account aac
             ON aac.id = wp.allss_account_analytic_id
-        LEFT JOIN account_account acc
-            ON acc.id = wp.allss_account_id
-        LEFT JOIN account_group g3 ON g3.id = acc.group_id
-        LEFT JOIN account_group g4 ON g4.id = g3.parent_id
-        LEFT JOIN account_group g5 ON g5.id = g4.parent_id
-        LEFT JOIN account_group g6 ON g6.id = g5.parent_id
         ORDER BY
             wp.allss_company_id,
             wp.allss_account_id,
@@ -425,7 +411,6 @@ class BalanceAccountAnalytic(models.Model):
 
         self._cr.execute(sql)
 
-        # Atualiza sequência da tabela
         self._cr.execute("""
             BEGIN;
                 LOCK TABLE allss_balance_account_analytic IN EXCLUSIVE MODE;
@@ -436,6 +421,7 @@ class BalanceAccountAnalytic(models.Model):
                 );
             COMMIT;
         """)
+
 
 
 
