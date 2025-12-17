@@ -278,130 +278,115 @@ class BalanceAccountAnalytic(models.Model):
 
 
     def execute_sql(self):
-        cr = self._cr
+        self._cr.execute("DELETE FROM public.allss_balance_account_analytic;")
 
-        # Limpa tabela
-        cr.execute("DELETE FROM public.allss_balance_account_analytic;")
-
-        # Conta analítica padrão
-        account_analytic_id = int(account_analytic_def(self)[0] or 0)
+        account_analytic_id = account_analytic_def(self)[0]
 
         sql = f"""
-        WITH base_lines AS (
-            -- Movimentos reais
-            SELECT
-                aml.company_id,
-                aml.account_id,
-                COALESCE(kv.key::int, {account_analytic_id}) AS analytic_account_id,
-                aml.date,
-                (aml.debit * 
-                    CASE 
-                        WHEN kv.value IS NULL THEN 1
-                        WHEN (kv.value::numeric) > 1 THEN kv.value::numeric / 100
-                        ELSE kv.value::numeric
-                    END
-                ) AS debit,
-                (aml.credit *
-                    CASE 
-                        WHEN kv.value IS NULL THEN 1
-                        WHEN (kv.value::numeric) > 1 THEN kv.value::numeric / 100
-                        ELSE kv.value::numeric
-                    END
-                ) AS credit
-            FROM account_move_line aml
-            LEFT JOIN LATERAL jsonb_each(aml.analytic_distribution) kv(key, value)
-                ON aml.analytic_distribution IS NOT NULL
-        ),
-
-        summed AS (
-            SELECT
-                company_id,
-                account_id,
-                analytic_account_id,
-                date,
-                SUM(debit) AS debit,
-                SUM(credit) AS credit
-            FROM base_lines
-            GROUP BY company_id, account_id, analytic_account_id, date
-        ),
-
-        balances AS (
-            SELECT
-                s.company_id,
-                s.account_id,
-                s.analytic_account_id,
-                s.date,
-                s.debit,
-                s.credit,
-                SUM(s.debit - s.credit) OVER (
-                    PARTITION BY s.company_id, s.account_id, s.analytic_account_id
-                    ORDER BY s.date, s.account_id
-                ) AS final_balance
-            FROM summed s
-        ),
-
-        with_prev AS (
-            SELECT
-                b.*,
-                LAG(b.final_balance, 1, 0) OVER (
-                    PARTITION BY b.company_id, b.account_id, b.analytic_account_id
-                    ORDER BY b.date, b.account_id
-                ) AS previous_balance
-            FROM balances b
-        )
-
-        INSERT INTO allss_balance_account_analytic (
+        INSERT INTO public.allss_balance_account_analytic(
+            id, create_uid, create_date, write_uid, write_date,
             allss_company_id,
+            allss_parent_id_6,
+            allss_parent_id_5,
+            allss_parent_id_4,
+            allss_parent_id_3,
+            allss_group_id,
             allss_account_id,
             allss_account_analytic_id,
-            allss_analytic_plan_id,
+            allss_analytic_group_id,
             allss_date,
             allss_previous_balance,
             allss_debit,
             allss_credit,
-            allss_final_balance,
-            allss_group_id,
-            allss_parent_id_3,
-            allss_parent_id_4,
-            allss_parent_id_5,
-            allss_parent_id_6
+            allss_final_balance
         )
         SELECT
-            wp.company_id,
-            wp.account_id,
-            wp.analytic_account_id,
-            aac.plan_id,
-            wp.date,
-            wp.previous_balance,
-            wp.debit,
-            wp.credit,
-            wp.final_balance,
+            row_number() OVER () AS id,
+            1 AS create_uid,
+            CURRENT_DATE AS create_date,
+            1 AS write_uid,
+            CURRENT_DATE AS write_date,
 
-            acc.group_id                         AS allss_group_id,
-            g3.parent_id                         AS allss_parent_id_3,
-            g4.parent_id                         AS allss_parent_id_4,
-            g5.parent_id                         AS allss_parent_id_5,
-            g6.parent_id                         AS allss_parent_id_6
+            wp.company_id AS allss_company_id,
 
-        FROM with_prev wp
+            g6.id AS allss_parent_id_6,
+            g5.id AS allss_parent_id_5,
+            g4.id AS allss_parent_id_4,
+            g3.id AS allss_parent_id_3,
+
+            acc.group_id AS allss_group_id,
+            wp.account_id AS allss_account_id,
+
+            wp.analytic_account_id AS allss_account_analytic_id,
+            aac.group_id AS allss_analytic_group_id,
+
+            wp.date AS allss_date,
+            wp.previous_balance AS allss_previous_balance,
+            wp.debit AS allss_debit,
+            wp.credit AS allss_credit,
+            wp.final_balance AS allss_final_balance
+
+        FROM (
+            SELECT
+                aml.company_id,
+                aml.account_id,
+                COALESCE(aml.analytic_account_id, {account_analytic_id}) AS analytic_account_id,
+                date_trunc('month', aml.date)::date AS date,
+
+                SUM(aml.debit) AS debit,
+                SUM(aml.credit) AS credit,
+
+                SUM(SUM(aml.debit - aml.credit)) OVER (
+                    PARTITION BY aml.company_id,
+                                aml.account_id,
+                                COALESCE(aml.analytic_account_id, {account_analytic_id})
+                    ORDER BY date_trunc('month', aml.date)
+                ) AS final_balance,
+
+                LAG(
+                    SUM(SUM(aml.debit - aml.credit)) OVER (
+                        PARTITION BY aml.company_id,
+                                    aml.account_id,
+                                    COALESCE(aml.analytic_account_id, {account_analytic_id})
+                        ORDER BY date_trunc('month', aml.date)
+                    ),
+                    1,
+                    0
+                ) OVER (
+                    PARTITION BY aml.company_id,
+                                aml.account_id,
+                                COALESCE(aml.analytic_account_id, {account_analytic_id})
+                    ORDER BY date_trunc('month', aml.date)
+                ) AS previous_balance
+
+            FROM account_move_line aml
+            JOIN account_move am ON am.id = aml.move_id AND am.state = 'posted'
+            GROUP BY
+                aml.company_id,
+                aml.account_id,
+                COALESCE(aml.analytic_account_id, {account_analytic_id}),
+                date_trunc('month', aml.date)
+        ) wp
+
         JOIN account_account acc ON acc.id = wp.account_id
+
+        -- 🔹 HIERARQUIA DE GRUPOS (IGUAL AO CÓDIGO ORIGINAL)
         LEFT JOIN account_group g3 ON g3.id = acc.group_id
         LEFT JOIN account_group g4 ON g4.id = g3.parent_id
         LEFT JOIN account_group g5 ON g5.id = g4.parent_id
         LEFT JOIN account_group g6 ON g6.id = g5.parent_id
-        LEFT JOIN account_analytic_account aac ON aac.id = wp.analytic_account_id
-        ORDER BY wp.company_id, wp.account_id, wp.analytic_account_id, wp.date;
+
+        LEFT JOIN account_analytic_account aac ON aac.id = wp.analytic_account_id;
         """
 
-        cr.execute(sql)
+        self._cr.execute(sql)
 
-        # Ajusta sequência
-        cr.execute("""
+        self._cr.execute("""
             BEGIN;
                 LOCK TABLE allss_balance_account_analytic IN EXCLUSIVE MODE;
                 SELECT setval(
                     'allss_balance_account_analytic_id_seq',
-                    COALESCE((SELECT MAX(id) + 1 FROM allss_balance_account_analytic), 1),
+                    COALESCE((SELECT MAX(id) FROM allss_balance_account_analytic) + 1, 1),
                     false
                 );
             COMMIT;
