@@ -366,12 +366,12 @@ class BalanceAccountAnalytic(models.Model):
 
             f.company_id,
 
-            g6.id,
-            g5.id,
-            g4.id,
+            NULL,
+            NULL,
+            NULL,
             g3.id,
 
-            g3.id AS allss_group_id,
+            g3.id,
             f.account_id,
             f.analytic_account_id,
             f.date,
@@ -386,13 +386,8 @@ class BalanceAccountAnalytic(models.Model):
             ON acc.id = f.account_id
 
         LEFT JOIN account_group g3
-            ON acc.code LIKE g3.code_prefix || '%'
-        LEFT JOIN account_group g4
-            ON g4.id = g3.parent_id
-        LEFT JOIN account_group g5
-            ON g5.id = g4.parent_id
-        LEFT JOIN account_group g6
-            ON g6.id = g5.parent_id;
+            ON g3.internal_group = acc.internal_group
+        AND g3.parent_id IS NULL;
         """
 
         cr.execute(sql)
@@ -407,6 +402,7 @@ class BalanceAccountAnalytic(models.Model):
                 );
             COMMIT;
         """)
+
 
 
 
