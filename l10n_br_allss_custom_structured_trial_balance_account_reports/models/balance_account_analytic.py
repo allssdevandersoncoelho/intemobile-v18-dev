@@ -293,7 +293,6 @@ class BalanceAccountAnalytic(models.Model):
             allss_group_id,
             allss_account_id,
             allss_account_analytic_id,
-            allss_analytic_group_id,
             allss_date,
             allss_previous_balance,
             allss_debit,
@@ -302,29 +301,27 @@ class BalanceAccountAnalytic(models.Model):
         )
         SELECT
             row_number() OVER () AS id,
-            1 AS create_uid,
-            CURRENT_DATE AS create_date,
-            1 AS write_uid,
-            CURRENT_DATE AS write_date,
+            1,
+            CURRENT_DATE,
+            1,
+            CURRENT_DATE,
 
-            wp.company_id AS allss_company_id,
+            wp.company_id,
 
-            g6.id AS allss_parent_id_6,
-            g5.id AS allss_parent_id_5,
-            g4.id AS allss_parent_id_4,
-            g3.id AS allss_parent_id_3,
+            g6.id,
+            g5.id,
+            g4.id,
+            g3.id,
 
-            acc.group_id AS allss_group_id,
-            wp.account_id AS allss_account_id,
+            acc.group_id,
+            wp.account_id,
 
-            wp.analytic_account_id AS allss_account_analytic_id,
-            aac.group_id AS allss_analytic_group_id,
-
-            wp.date AS allss_date,
-            wp.previous_balance AS allss_previous_balance,
-            wp.debit AS allss_debit,
-            wp.credit AS allss_credit,
-            wp.final_balance AS allss_final_balance
+            wp.analytic_account_id,
+            wp.date,
+            wp.previous_balance,
+            wp.debit,
+            wp.credit,
+            wp.final_balance
 
         FROM (
             SELECT
@@ -360,7 +357,8 @@ class BalanceAccountAnalytic(models.Model):
                 ) AS previous_balance
 
             FROM account_move_line aml
-            JOIN account_move am ON am.id = aml.move_id AND am.state = 'posted'
+            JOIN account_move am ON am.id = aml.move_id
+            WHERE am.state = 'posted'
             GROUP BY
                 aml.company_id,
                 aml.account_id,
@@ -370,13 +368,10 @@ class BalanceAccountAnalytic(models.Model):
 
         JOIN account_account acc ON acc.id = wp.account_id
 
-        -- 🔹 HIERARQUIA DE GRUPOS (IGUAL AO CÓDIGO ORIGINAL)
         LEFT JOIN account_group g3 ON g3.id = acc.group_id
         LEFT JOIN account_group g4 ON g4.id = g3.parent_id
         LEFT JOIN account_group g5 ON g5.id = g4.parent_id
-        LEFT JOIN account_group g6 ON g6.id = g5.parent_id
-
-        LEFT JOIN account_analytic_account aac ON aac.id = wp.analytic_account_id;
+        LEFT JOIN account_group g6 ON g6.id = g5.parent_id;
         """
 
         self._cr.execute(sql)
@@ -391,7 +386,6 @@ class BalanceAccountAnalytic(models.Model):
                 );
             COMMIT;
         """)
-
 
 
 
