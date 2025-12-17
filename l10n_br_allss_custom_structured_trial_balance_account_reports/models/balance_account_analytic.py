@@ -283,43 +283,37 @@ class BalanceAccountAnalytic(models.Model):
     def execute_sql(self):
         cr = self._cr
 
-        # Limpa tabela
         cr.execute("DELETE FROM allss_balance_account_analytic;")
 
-        # Conta analítica padrão
         analytic_id, analytic_plan_id = account_analytic_def(self)
-
-        analytic_sql = 'NULL'
-        if analytic_id:
-            analytic_sql = str(analytic_id)
+        analytic_sql = str(analytic_id) if analytic_id else 'NULL'
 
         sql = f"""
         WITH aml_raw AS (
 
-            /* ============================
-            1) Movimentos reais
-            ============================ */
+            /* =====================================
+            1) Movimentos reais (datas reais)
+            ===================================== */
             SELECT
                 aml.company_id,
                 aml.account_id,
                 aml.date::date AS date,
-                COALESCE(
-                    (jsonb_object_keys(aml.analytic_distribution))::int,
-                    {analytic_sql}
-                ) AS analytic_account_id,
+                COALESCE(ad.account_id, {analytic_sql}) AS analytic_account_id,
                 aml.debit,
                 aml.credit
             FROM account_move_line aml
             JOIN account_move am
                 ON am.id = aml.move_id
             AND am.state = 'posted'
+            LEFT JOIN LATERAL (
+                SELECT (jsonb_object_keys(aml.analytic_distribution))::int AS account_id
+            ) ad ON TRUE
 
             UNION ALL
 
-            /* ============================
-            2) Linha dia 01 de cada mês
-                (mesmo sem movimento)
-            ============================ */
+            /* =====================================
+            2) Linha dia 01 de cada mês (sem movimento)
+            ===================================== */
             SELECT
                 mov.company_id,
                 mov.account_id,
@@ -331,13 +325,16 @@ class BalanceAccountAnalytic(models.Model):
                 SELECT
                     aml.company_id,
                     aml.account_id,
-                    aml.analytic_account_id,
+                    COALESCE(ad.account_id, {analytic_sql}) AS analytic_account_id,
                     MIN(aml.date) AS min_date
                 FROM account_move_line aml
+                LEFT JOIN LATERAL (
+                    SELECT (jsonb_object_keys(aml.analytic_distribution))::int AS account_id
+                ) ad ON TRUE
                 GROUP BY
                     aml.company_id,
                     aml.account_id,
-                    aml.analytic_account_id
+                    ad.account_id
             ) mov
             JOIN generate_series(
                 date_trunc('month', mov.min_date),
@@ -346,11 +343,10 @@ class BalanceAccountAnalytic(models.Model):
             ) gs ON TRUE
         ),
 
+        /* =====================================
+        3) Agrupa por data real
+        ===================================== */
         aml_grouped AS (
-
-            /* ============================
-            3) Agrupamento por dia real
-            ============================ */
             SELECT
                 company_id,
                 account_id,
@@ -366,11 +362,10 @@ class BalanceAccountAnalytic(models.Model):
                 date
         ),
 
+        /* =====================================
+        4) Saldo acumulado
+        ===================================== */
         aml_balance AS (
-
-            /* ============================
-            4) Saldo acumulado
-            ============================ */
             SELECT
                 g.*,
                 SUM(g.debit - g.credit) OVER (
@@ -383,11 +378,10 @@ class BalanceAccountAnalytic(models.Model):
             FROM aml_grouped g
         ),
 
+        /* =====================================
+        5) Saldo anterior
+        ===================================== */
         aml_final AS (
-
-            /* ============================
-            5) Saldo anterior
-            ============================ */
             SELECT
                 *,
                 LAG(final_balance, 1, 0) OVER (
@@ -435,7 +429,6 @@ class BalanceAccountAnalytic(models.Model):
 
         cr.execute(sql)
 
-        # Ajuste da sequência
         cr.execute("""
             BEGIN;
                 LOCK TABLE allss_balance_account_analytic IN EXCLUSIVE MODE;
@@ -446,6 +439,7 @@ class BalanceAccountAnalytic(models.Model):
                 );
             COMMIT;
         """)
+
 
 
 
