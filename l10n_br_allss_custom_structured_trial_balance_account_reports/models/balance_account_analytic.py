@@ -283,10 +283,8 @@ class BalanceAccountAnalytic(models.Model):
     def execute_sql(self):
         cr = self._cr
 
-        # Limpa a tabela
         cr.execute("DELETE FROM allss_balance_account_analytic;")
 
-        # Analítica default (garante SQL válido)
         account_analytic_id = account_analytic_def(self)[0]
         account_analytic_id = account_analytic_id if account_analytic_id else 'NULL'
 
@@ -315,19 +313,13 @@ class BalanceAccountAnalytic(models.Model):
 
         aml_balance AS (
             SELECT
-                b.company_id,
-                b.account_id,
-                b.analytic_account_id,
-                b.date,
-                b.debit,
-                b.credit,
+                b.*,
                 SUM(b.debit - b.credit) OVER (
                     PARTITION BY
                         b.company_id,
                         b.account_id,
                         b.analytic_account_id
                     ORDER BY b.date
-                    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
                 ) AS final_balance
             FROM aml_base b
         ),
@@ -379,7 +371,7 @@ class BalanceAccountAnalytic(models.Model):
             g4.id,
             g3.id,
 
-            acc.account_group_id,
+            g3.id AS allss_group_id,
             f.account_id,
             f.analytic_account_id,
             f.date,
@@ -392,8 +384,9 @@ class BalanceAccountAnalytic(models.Model):
         FROM aml_final f
         JOIN account_account acc
             ON acc.id = f.account_id
+
         LEFT JOIN account_group g3
-            ON g3.id = acc.account_group_id
+            ON acc.code LIKE g3.code_prefix || '%'
         LEFT JOIN account_group g4
             ON g4.id = g3.parent_id
         LEFT JOIN account_group g5
@@ -404,7 +397,6 @@ class BalanceAccountAnalytic(models.Model):
 
         cr.execute(sql)
 
-        # Ajusta sequence
         cr.execute("""
             BEGIN;
                 LOCK TABLE allss_balance_account_analytic IN EXCLUSIVE MODE;
@@ -415,6 +407,7 @@ class BalanceAccountAnalytic(models.Model):
                 );
             COMMIT;
         """)
+
 
 
 
