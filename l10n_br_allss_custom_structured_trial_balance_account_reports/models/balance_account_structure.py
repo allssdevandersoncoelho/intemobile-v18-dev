@@ -83,32 +83,48 @@ class BalanceAccountStructure(models.Model):
 
     
 
-
     # @api.model
     # def read_group(self, domain, fields, groupby, offset=0, limit=None, orderby=False, lazy=True):
-    #     fields_list = ['allss_previous_balance', 'allss_debit', 'allss_credit', 'allss_final_balance']
-    #     result = super(BalanceAccountStructure, self).read_group(
-    #         domain=domain, fields=fields_list, groupby=groupby, offset=offset,
-    #         limit=limit, orderby=orderby, lazy=lazy)
+    #     fields_list = [
+    #         'allss_previous_balance',
+    #         'allss_debit',
+    #         'allss_credit',
+    #         'allss_final_balance',
+    #     ]
 
-    #     if result and fields:
-    #         for group_line in result:
-    #             # Apenas recalcula para grupos, não para linhas únicas
-    #             if "allss_account_id_count" in group_line and group_line["allss_account_id_count"] > 1:
-    #                 # Filtra registros correspondentes ao grupo atual
-    #                 account_id = group_line.get('allss_account_id')
-    #                 company_id = group_line.get('allss_company_id')
-    #                 if account_id and company_id:
-    #                     records = self.search([
-    #                         ('allss_company_id', '=', company_id),
-    #                         ('allss_account_id', '=', account_id)
-    #                     ], order='allss_date asc')
-    #                     previous = records[0].allss_previous_balance if records else 0.0
-    #                     group_line["allss_previous_balance"] = previous
-    #                     group_line["allss_final_balance"] = previous + group_line.get("allss_debit", 0.0) - group_line.get("allss_credit", 0.0)
-    #             else:
-    #                 # Para linhas únicas, mantém os valores calculados
-    #                 group_line["allss_final_balance"] = group_line.get("allss_previous_balance", 0.0) + group_line.get("allss_debit", 0.0) - group_line.get("allss_credit", 0.0)
+    #     result = super().read_group(
+    #         domain=domain,
+    #         fields=fields_list,
+    #         groupby=groupby,
+    #         offset=offset,
+    #         limit=limit,
+    #         orderby=orderby,
+    #         lazy=lazy,
+    #     )
+
+    #     if not result or not fields:
+    #         return result
+
+    #     for group_line in result:
+    #         group_domain = group_line.get('__domain')
+    #         if not group_domain:
+    #             continue
+
+    #         # Registro mais antigo do grupo
+    #         first_record = self.search(
+    #             group_domain,
+    #             order='allss_date asc, id asc',
+    #             limit=1
+    #         )
+
+    #         previous = first_record.allss_previous_balance if first_record else 0.0
+
+    #         group_line['allss_previous_balance'] = previous
+    #         group_line['allss_final_balance'] = (
+    #             previous
+    #             + group_line.get('allss_debit', 0.0)
+    #             - group_line.get('allss_credit', 0.0)
+    #         )
 
     #     return result
 
@@ -135,19 +151,61 @@ class BalanceAccountStructure(models.Model):
         if not result or not fields:
             return result
 
-        for group_line in result:
-            group_domain = group_line.get('__domain')
-            if not group_domain:
-                continue
+        # 🔹 Coleta todos os domínios de grupo
+        group_domains = [
+            group['__domain']
+            for group in result
+            if group.get('__domain')
+        ]
 
-            # Registro mais antigo do grupo
-            first_record = self.search(
-                group_domain,
-                order='allss_date asc, id asc',
-                limit=1
+        if not group_domains:
+            return result
+
+        # 🔹 Constrói um domínio OR gigante (dom1 OR dom2 OR dom3 ...)
+        if len(group_domains) == 1:
+            big_domain = group_domains[0]
+        else:
+            big_domain = ['|'] * (len(group_domains) - 1)
+            for dom in group_domains:
+                big_domain += dom
+
+        # 🔹 Busca tudo de uma vez, já ordenado
+        records = self.search(
+            big_domain,
+            order='allss_company_id, allss_account_id, allss_date asc, id asc'
+        )
+
+        # 🔹 Guarda o primeiro saldo por combinação relevante
+        first_balance_map = {}
+
+        for rec in records:
+            key = (
+                rec.allss_company_id.id if rec.allss_company_id else None,
+                rec.allss_account_id.id if rec.allss_account_id else None,
+                rec.allss_parent_id_6.id if rec.allss_parent_id_6 else None,
+                rec.allss_parent_id_5.id if rec.allss_parent_id_5 else None,
+                rec.allss_parent_id_4.id if rec.allss_parent_id_4 else None,
+                rec.allss_parent_id_3.id if rec.allss_parent_id_3 else None,
+                rec.allss_group_id.id if rec.allss_group_id else None,
             )
 
-            previous = first_record.allss_previous_balance if first_record else 0.0
+            # só o primeiro registro do grupo interessa
+            if key not in first_balance_map:
+                first_balance_map[key] = rec.allss_previous_balance or 0.0
+
+        # 🔹 Aplica os valores calculados
+        for group_line in result:
+            key = (
+                group_line.get('allss_company_id'),
+                group_line.get('allss_account_id'),
+                group_line.get('allss_parent_id_6'),
+                group_line.get('allss_parent_id_5'),
+                group_line.get('allss_parent_id_4'),
+                group_line.get('allss_parent_id_3'),
+                group_line.get('allss_group_id'),
+            )
+
+            previous = first_balance_map.get(key, 0.0)
 
             group_line['allss_previous_balance'] = previous
             group_line['allss_final_balance'] = (
@@ -250,129 +308,7 @@ class BalanceAccountStructure(models.Model):
 
 
 
-    #FUNCIONANDO 100%
-    # def execute_sql(self):
-    #     self._cr.execute("DELETE FROM public.allss_balance_account_structure;")
-
-    #     self._cr.execute("""
-    #         INSERT INTO public.allss_balance_account_structure (
-    #             id, create_uid, create_date, write_uid, write_date,
-    #             allss_company_id,
-    #             allss_parent_id_6,
-    #             allss_parent_id_5,
-    #             allss_parent_id_4,
-    #             allss_parent_id_3,
-    #             allss_group_id,
-    #             allss_account_id,
-    #             allss_date,
-    #             allss_previous_balance,
-    #             allss_debit,
-    #             allss_credit,
-    #             allss_final_balance
-    #         )
-    #         SELECT
-    #             id,
-    #             1,
-    #             CURRENT_DATE,
-    #             1,
-    #             CURRENT_DATE,
-    #             allss_company_id,
-    #             allss_parent_id_6,
-    #             allss_parent_id_5,
-    #             allss_parent_id_4,
-    #             allss_parent_id_3,
-    #             allss_group_id,
-    #             allss_account_id,
-    #             allss_date,
-    #             allss_previous_balance,
-    #             allss_debit,
-    #             allss_credit,
-    #             allss_final_balance
-    #         FROM (
-    #             SELECT *,
-    #                 ROW_NUMBER() OVER (
-    #                     ORDER BY allss_company_id, allss_account_id, allss_date
-    #                 ) AS id
-    #             FROM (
-    #                 SELECT *,
-    #                     (allss_final_balance + allss_credit - allss_debit)
-    #                         AS allss_previous_balance
-    #                 FROM (
-    #                     SELECT
-    #                         mv.company_id              AS allss_company_id,
-    #                         mv._allss_parent_id_6      AS allss_parent_id_6,
-    #                         mv._allss_parent_id_5      AS allss_parent_id_5,
-    #                         mv._allss_parent_id_4      AS allss_parent_id_4,
-    #                         mv._allss_parent_id_3      AS allss_parent_id_3,
-    #                         mv._allss_group_id         AS allss_group_id,
-    #                         mv.account_id              AS allss_account_id,
-
-    #                         /* data real se houver movimento, senão 1º dia do mês */
-    #                         COALESCE(mv.date, mv.month_date)
-    #                                                     AS allss_date,
-
-    #                         COALESCE(mv.debit, 0)      AS allss_debit,
-    #                         COALESCE(mv.credit, 0)     AS allss_credit,
-
-    #                         SUM(
-    #                             COALESCE(mv.debit, 0) - COALESCE(mv.credit, 0)
-    #                         ) OVER (
-    #                             PARTITION BY
-    #                                 mv.company_id,
-    #                                 mv._allss_group_id,
-    #                                 mv.account_id
-    #                             ORDER BY
-    #                                 mv.company_id,
-    #                                 mv._allss_group_id,
-    #                                 mv.account_id,
-    #                                 COALESCE(mv.date, mv.month_date)
-    #                         )                           AS allss_final_balance
-
-    #                     FROM (
-    #                         SELECT
-    #                             aml.company_id,
-    #                             aml.account_id,
-    #                             aml._allss_group_id,
-    #                             aml._allss_parent_id_6,
-    #                             aml._allss_parent_id_5,
-    #                             aml._allss_parent_id_4,
-    #                             aml._allss_parent_id_3,
-    #                             aml.date,
-    #                             date_trunc('month', aml.date)::date AS month_date,
-    #                             SUM(aml.debit)  AS debit,
-    #                             SUM(aml.credit) AS credit
-    #                         FROM account_move_line aml
-    #                         JOIN account_move am
-    #                         ON am.id = aml.move_id
-    #                         AND am.state = 'posted'
-    #                         GROUP BY
-    #                             aml.company_id,
-    #                             aml.account_id,
-    #                             aml._allss_group_id,
-    #                             aml._allss_parent_id_6,
-    #                             aml._allss_parent_id_5,
-    #                             aml._allss_parent_id_4,
-    #                             aml._allss_parent_id_3,
-    #                             aml.date
-    #                     ) mv
-    #                 ) s1
-    #             ) s2
-    #         ) final;
-    #     """)
-
-    #     self._cr.execute("""
-    #         BEGIN;
-    #             LOCK TABLE allss_balance_account_structure IN EXCLUSIVE MODE;
-    #             SELECT setval(
-    #                 'allss_balance_account_structure_id_seq',
-    #                 COALESCE((SELECT MAX(id) + 1 FROM allss_balance_account_structure), 1),
-    #                 false
-    #             );
-    #         COMMIT;
-    #     """)
-
-
-
+    #Função para popular a tabela de balancete estruturado 17/12/2025 
     def execute_sql(self):
         cr = self._cr
 
