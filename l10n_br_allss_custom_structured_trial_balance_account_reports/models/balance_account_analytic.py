@@ -282,59 +282,19 @@ class BalanceAccountAnalytic(models.Model):
 
     def execute_sql(self):
         cr = self._cr
-
         cr.execute("DELETE FROM allss_balance_account_analytic;")
 
-        account_analytic_id = account_analytic_def(self)[0]
-        account_analytic_id = account_analytic_id if account_analytic_id else 'NULL'
+        account_analytic_id = account_analytic_def(self)[0] or 0
 
         sql = f"""
-        WITH months AS (
-            SELECT
-                date_trunc(
-                    'month',
-                    generate_series(
-                        (SELECT MIN(date) FROM account_move_line),
-                        CURRENT_DATE,
-                        '1 month'
-                    )
-                )::date AS date
-        ),
-
-        accounts_base AS (
-            SELECT DISTINCT
-                aml.company_id,
-                aml.account_id,
-                COALESCE(ad.account_id, {account_analytic_id}) AS analytic_account_id
-            FROM account_move_line aml
-            JOIN account_move am
-                ON am.id = aml.move_id
-            AND am.state = 'posted'
-            LEFT JOIN LATERAL (
-                SELECT (jsonb_object_keys(aml.analytic_distribution))::int AS account_id
-            ) ad ON TRUE
-        ),
-
-        fake_lines AS (
-            SELECT
-                ab.company_id,
-                ab.account_id,
-                ab.analytic_account_id,
-                m.date,
-                0::numeric AS debit,
-                0::numeric AS credit
-            FROM accounts_base ab
-            CROSS JOIN months m
-        ),
-
-        real_lines AS (
+        WITH base_moves AS (
             SELECT
                 aml.company_id,
                 aml.account_id,
                 COALESCE(ad.account_id, {account_analytic_id}) AS analytic_account_id,
                 aml.date,
-                SUM(aml.debit) AS debit,
-                SUM(aml.credit) AS credit
+                aml.debit,
+                aml.credit
             FROM account_move_line aml
             JOIN account_move am
                 ON am.id = aml.move_id
@@ -342,43 +302,84 @@ class BalanceAccountAnalytic(models.Model):
             LEFT JOIN LATERAL (
                 SELECT (jsonb_object_keys(aml.analytic_distribution))::int AS account_id
             ) ad ON TRUE
-            GROUP BY
-                aml.company_id,
-                aml.account_id,
-                aml.date,
-                ad.account_id
+        ),
+
+        min_dates AS (
+            SELECT
+                company_id,
+                account_id,
+                analytic_account_id,
+                MIN(date) AS min_date
+            FROM base_moves
+            GROUP BY company_id, account_id, analytic_account_id
+        ),
+
+        generated_months AS (
+            SELECT
+                md.company_id,
+                md.account_id,
+                md.analytic_account_id,
+                generate_series(
+                    date_trunc('month', md.min_date),
+                    date_trunc('month', CURRENT_DATE),
+                    '1 month'
+                )::date AS date
+            FROM min_dates md
+        ),
+
+        missing_months AS (
+            SELECT
+                gm.company_id,
+                gm.account_id,
+                gm.analytic_account_id,
+                gm.date,
+                0::numeric AS debit,
+                0::numeric AS credit
+            FROM generated_months gm
+            LEFT JOIN base_moves bm
+                ON bm.company_id = gm.company_id
+            AND bm.account_id = gm.account_id
+            AND bm.analytic_account_id = gm.analytic_account_id
+            AND date_trunc('month', bm.date) = gm.date
+            WHERE bm.date IS NULL
+        ),
+
+        real_moves AS (
+            SELECT
+                company_id,
+                account_id,
+                analytic_account_id,
+                date,
+                SUM(debit) AS debit,
+                SUM(credit) AS credit
+            FROM base_moves
+            GROUP BY company_id, account_id, analytic_account_id, date
         ),
 
         all_lines AS (
-            SELECT * FROM fake_lines
+            SELECT * FROM real_moves
             UNION ALL
-            SELECT * FROM real_lines
+            SELECT * FROM missing_months
         ),
 
-        aml_balance AS (
+        balances AS (
             SELECT
                 l.*,
                 SUM(l.debit - l.credit) OVER (
-                    PARTITION BY
-                        l.company_id,
-                        l.account_id,
-                        l.analytic_account_id
-                    ORDER BY l.date
+                    PARTITION BY company_id, account_id, analytic_account_id
+                    ORDER BY date
                 ) AS final_balance
             FROM all_lines l
         ),
 
-        aml_final AS (
+        final AS (
             SELECT
                 *,
                 LAG(final_balance, 1, 0) OVER (
-                    PARTITION BY
-                        company_id,
-                        account_id,
-                        analytic_account_id
+                    PARTITION BY company_id, account_id, analytic_account_id
                     ORDER BY date
                 ) AS previous_balance
-            FROM aml_balance
+            FROM balances
         )
 
         INSERT INTO allss_balance_account_analytic (
@@ -398,11 +399,7 @@ class BalanceAccountAnalytic(models.Model):
         )
         SELECT
             row_number() OVER () AS id,
-            1,
-            CURRENT_DATE,
-            1,
-            CURRENT_DATE,
-
+            1, CURRENT_DATE, 1, CURRENT_DATE,
             company_id,
             account_id,
             analytic_account_id,
@@ -411,12 +408,8 @@ class BalanceAccountAnalytic(models.Model):
             debit,
             credit,
             final_balance
-        FROM aml_final
-        ORDER BY
-            company_id,
-            analytic_account_id,
-            account_id,
-            date;
+        FROM final
+        ORDER BY company_id, analytic_account_id, account_id, date;
         """
 
         cr.execute(sql)
@@ -431,6 +424,7 @@ class BalanceAccountAnalytic(models.Model):
                 );
             COMMIT;
         """)
+
 
 
 
