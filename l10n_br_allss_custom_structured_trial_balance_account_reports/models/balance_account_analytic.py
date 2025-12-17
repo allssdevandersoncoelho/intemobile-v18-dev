@@ -277,15 +277,20 @@ class BalanceAccountAnalytic(models.Model):
     #     """)
 
 
+
+
+
     def execute_sql(self):
         cr = self._cr
+
+        # Limpa a tabela
         cr.execute("DELETE FROM allss_balance_account_analytic;")
 
-        account_analytic_id = account_analytic_def(self)[0]
+        # Garante que nunca entra None no SQL
+        account_analytic_id = account_analytic_def(self)[0] or 'NULL'
 
         sql = f"""
         WITH aml_base AS (
-            -- 1) Base mensal por conta / analítica
             SELECT
                 aml.company_id,
                 aml.account_id,
@@ -294,7 +299,9 @@ class BalanceAccountAnalytic(models.Model):
                 SUM(aml.debit) AS debit,
                 SUM(aml.credit) AS credit
             FROM account_move_line aml
-            JOIN account_move am ON am.id = aml.move_id AND am.state = 'posted'
+            JOIN account_move am
+                ON am.id = aml.move_id
+            AND am.state = 'posted'
             LEFT JOIN LATERAL (
                 SELECT (jsonb_object_keys(aml.analytic_distribution))::int AS account_id
             ) ad ON TRUE
@@ -306,29 +313,43 @@ class BalanceAccountAnalytic(models.Model):
         ),
 
         aml_balance AS (
-            -- 2) Saldo acumulado
             SELECT
-                b.*,
+                b.company_id,
+                b.account_id,
+                b.analytic_account_id,
+                b.date,
+                b.debit,
+                b.credit,
                 SUM(b.debit - b.credit) OVER (
-                    PARTITION BY b.company_id, b.account_id, b.analytic_account_id
+                    PARTITION BY
+                        b.company_id,
+                        b.account_id,
+                        b.analytic_account_id
                     ORDER BY b.date
+                    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
                 ) AS final_balance
             FROM aml_base b
         ),
 
         aml_final AS (
-            -- 3) Saldo anterior
             SELECT
                 *,
                 LAG(final_balance, 1, 0) OVER (
-                    PARTITION BY company_id, account_id, analytic_account_id
+                    PARTITION BY
+                        company_id,
+                        account_id,
+                        analytic_account_id
                     ORDER BY date
                 ) AS previous_balance
             FROM aml_balance
         )
 
         INSERT INTO allss_balance_account_analytic (
-            id, create_uid, create_date, write_uid, write_date,
+            id,
+            create_uid,
+            create_date,
+            write_uid,
+            write_date,
             allss_company_id,
             allss_parent_id_6,
             allss_parent_id_5,
@@ -345,7 +366,10 @@ class BalanceAccountAnalytic(models.Model):
         )
         SELECT
             row_number() OVER () AS id,
-            1, CURRENT_DATE, 1, CURRENT_DATE,
+            1,
+            CURRENT_DATE,
+            1,
+            CURRENT_DATE,
 
             f.company_id,
 
@@ -365,25 +389,32 @@ class BalanceAccountAnalytic(models.Model):
             f.final_balance
 
         FROM aml_final f
-        JOIN account_account acc ON acc.id = f.account_id
-        LEFT JOIN account_group g3 ON g3.id = acc.group_id
-        LEFT JOIN account_group g4 ON g4.id = g3.parent_id
-        LEFT JOIN account_group g5 ON g5.id = g4.parent_id
-        LEFT JOIN account_group g6 ON g6.id = g5.parent_id;
+        JOIN account_account acc
+            ON acc.id = f.account_id
+        LEFT JOIN account_group g3
+            ON g3.id = acc.group_id
+        LEFT JOIN account_group g4
+            ON g4.id = g3.parent_id
+        LEFT JOIN account_group g5
+            ON g5.id = g4.parent_id
+        LEFT JOIN account_group g6
+            ON g6.id = g5.parent_id;
         """
 
         cr.execute(sql)
 
+        # Ajusta a sequence
         cr.execute("""
             BEGIN;
                 LOCK TABLE allss_balance_account_analytic IN EXCLUSIVE MODE;
                 SELECT setval(
                     'allss_balance_account_analytic_id_seq',
-                    COALESCE((SELECT MAX(id) FROM allss_balance_account_analytic) + 1, 1),
+                    COALESCE((SELECT MAX(id) FROM allss_balance_account_analytic), 0) + 1,
                     false
                 );
             COMMIT;
         """)
+
 
 
 
