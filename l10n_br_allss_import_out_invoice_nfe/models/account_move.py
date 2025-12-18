@@ -429,40 +429,48 @@ class AllssAccountMoveNfeImport(models.Model):
             return wizard_journal
         
         return res
+    
 
-    def import_nfe(self, auto, company_id, nfe, nfe_xml, dfe, 
-                   partner_automation=False,
-                   account_invoice_automation=False, 
-                   tax_automation=False,
-                   supplierinfo_automation=False, 
-                   fiscal_position_id=False,
-                   payment_term_id=False, 
-                   account_move_dict=None, 
-                   purchase_order_automation=False):
 
-        _logger.warning(f"+++Contexto import_nfe:  {self.env.context}")
+    def create_account_move_line(self, item, company_id, partner_id, supplier_automation,
+                                 tax_automation, fiscal_position_id=None, account_move_dict=None):
+        
+        
+        result = super().create_account_move_line(self, item, company_id, partner_id, supplier_automation,
+                                 tax_automation, fiscal_position_id=None, account_move_dict=None)
 
-        move = super().import_nfe(
-            auto, company_id, nfe, nfe_xml, dfe,
-            partner_automation,
-            account_invoice_automation,
-            tax_automation,
-            supplierinfo_automation,
-            fiscal_position_id,
-            payment_term_id,
-            account_move_dict,
-            purchase_order_automation
-        )
+        account_move_line, operation = result
 
-        # if not move:
-        #     return move
+        analytic = self.env.context.get('l10n_br_allss_account_analytic_id')
+        if analytic:
+            account_move_line['analytic_distribution'] = {
+                str(analytic.id): 100.0
+            }
 
-        # ctx = self.env.context
-        # company = move.company_id
+        return [account_move_line, operation]
 
-        # if (company.l10n_br_allss_invoice_automation and ctx.get('l10n_br_allss_journal_id')):
-        #     move.sudo().write({
-        #         'journal_id': ctx['l10n_br_allss_journal_id'].id
-        #     })
+    # def import_nfe(self, auto, company_id, nfe, nfe_xml, dfe, 
+    #                partner_automation=False,
+    #                account_invoice_automation=False, 
+    #                tax_automation=False,
+    #                supplierinfo_automation=False, 
+    #                fiscal_position_id=False,
+    #                payment_term_id=False, 
+    #                account_move_dict=None, 
+    #                purchase_order_automation=False):
 
-        return move
+    #     _logger.warning(f"+++Contexto import_nfe:  {self.env.context}")
+
+    #     move = super().import_nfe(
+    #         auto, company_id, nfe, nfe_xml, dfe,
+    #         partner_automation,
+    #         account_invoice_automation,
+    #         tax_automation,
+    #         supplierinfo_automation,
+    #         fiscal_position_id,
+    #         payment_term_id,
+    #         account_move_dict,
+    #         purchase_order_automation
+    #     )
+
+    #     return move
