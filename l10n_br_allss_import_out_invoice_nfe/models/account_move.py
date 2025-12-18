@@ -31,20 +31,20 @@ from odoo.exceptions import UserError       #, ValidationError
 #     raise f"Tipo não implementado {type(obj)}"
 
 
-# def get(obj, path, conversion=None):
-#     paths = path.split(".")
-#     index = 0
-#     for item in paths:
-#         if not item:
-#             continue
-#         if hasattr(obj, item):
-#             obj = obj[item]
-#             index += 1
-#         else:
-#             return None
-#     if len(paths) == index:
-#         return convert(obj, conversion=conversion)
-#     return None
+def get(obj, path, conversion=None):
+    paths = path.split(".")
+    index = 0
+    for item in paths:
+        if not item:
+            continue
+        if hasattr(obj, item):
+            obj = obj[item]
+            index += 1
+        else:
+            return None
+    if len(paths) == index:
+        return convert(obj, conversion=conversion)
+    return None
 
 
 # def cnpj_cpf_format(cnpj_cpf):
@@ -441,6 +441,34 @@ class AllssAccountMoveNfeImport(models.Model):
 
         account_move_line, operation = result
 
+
+        codigo = get(item.prod, 'cProd', str)
+
+        # Busca produto pelo código do marketplace (l10n_br_allss_codigo_marketplace)
+        if codigo:
+            marketplace_products = self.env['product.product'].search([
+                ('l10n_br_allss_codigo_marketplace', '=', codigo)
+            ])
+
+            if len(marketplace_products) > 1:
+                raise UserError(
+                    '[Código do Produto Marketplace] presente em mais de um Produto! '
+                    'Os códigos devem ser únicos.'
+                )
+
+            if marketplace_products:
+                product = marketplace_products[0]
+
+                _logger.warning(
+                    f'ALLSS Marketplace PRIORITÁRIO → {product.display_name}'
+                )
+
+                account_move_line.update({
+                    'product_id': product.id,
+                })
+
+
+        # Adiciona conta analítica na linha da fatura, caso venha no contexto
         analytic = self.env.context.get('l10n_br_allss_account_analytic_id')
         if analytic:
             account_move_line['analytic_distribution'] = {
