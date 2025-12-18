@@ -35,60 +35,144 @@ class BalanceAccountAnalytic(models.Model):
 
 
 
+    # @api.model
+    # def read_group(self, domain, fields, groupby, offset=0, limit=None, orderby=False, lazy=True):
+    #     result = super(BalanceAccountAnalytic, self).read_group(
+    #         domain, fields, groupby, offset=offset, limit=limit, orderby=orderby, lazy=lazy
+    #     )
+
+    #     if not result or not fields:
+    #         return result
+
+    #     for group_line in result:
+    #         domain_line = group_line.get("__domain", [])
+    #         try:
+    #             # Busca a menor data dentro do domínio do grupo
+    #             where_calc = self._where_calc(domain_line)
+    #             query_obj = getattr(where_calc, "query", None)
+
+    #             if not query_obj:
+    #                 continue
+
+    #             query_sql = str(query_obj)
+    #             params = getattr(query_obj, "params", [])
+
+    #             self.env.cr.execute(f"""
+    #                 SELECT MIN(allss_date) AS first_date
+    #                 FROM allss_balance_account_analytic
+    #                 WHERE {query_sql}
+    #             """, params)
+    #             row = self.env.cr.dictfetchone()
+    #             first_date = row.get("first_date") if row else None
+
+    #             prev_balance = 0
+    #             if first_date:
+    #                 self.env.cr.execute(f"""
+    #                     SELECT allss_final_balance
+    #                     FROM allss_balance_account_analytic
+    #                     WHERE allss_date < %s
+    #                     AND {query_sql}
+    #                     ORDER BY allss_date DESC
+    #                     LIMIT 1
+    #                 """, [first_date] + params)
+    #                 row_prev = self.env.cr.dictfetchone()
+    #                 prev_balance = row_prev.get("allss_final_balance", 0) if row_prev else 0
+
+    #             group_line["allss_previous_balance"] = prev_balance
+    #             group_line["allss_final_balance"] = (
+    #                 prev_balance
+    #                 + group_line.get("allss_debit", 0)
+    #                 - group_line.get("allss_credit", 0)
+    #             )
+
+    #         except Exception as e:
+    #             _logger.error("Erro ao processar grupo %s: %s", group_line, e)
+
+    #     return result
+
+
     @api.model
     def read_group(self, domain, fields, groupby, offset=0, limit=None, orderby=False, lazy=True):
-        result = super(BalanceAccountAnalytic, self).read_group(
-            domain, fields, groupby, offset=offset, limit=limit, orderby=orderby, lazy=lazy
+        fields_list = [
+            'allss_previous_balance',
+            'allss_debit',
+            'allss_credit',
+            'allss_final_balance',
+        ]
+
+        result = super().read_group(
+            domain=domain,
+            fields=fields_list,
+            groupby=groupby,
+            offset=offset,
+            limit=limit,
+            orderby=orderby,
+            lazy=lazy,
         )
 
         if not result or not fields:
             return result
 
+        group_domains = [
+            g['__domain']
+            for g in result
+            if g.get('__domain')
+        ]
+
+        if not group_domains:
+            return result
+
+        big_domain = group_domains[0]
+        if len(group_domains) > 1:
+            big_domain = ['|'] * (len(group_domains) - 1)
+            for dom in group_domains:
+                big_domain += dom
+
+        records = self.search(
+            big_domain,
+            order='allss_company_id, allss_account_id, allss_account_analytic_id, allss_date asc, id asc'
+        )
+
+        first_balance_map = {}
+
+        for rec in records:
+            key = (
+                rec.allss_company_id.id if rec.allss_company_id else None,
+                rec.allss_account_id.id if rec.allss_account_id else None,
+                rec.allss_account_analytic_id.id if rec.allss_account_analytic_id else None,
+                rec.allss_parent_id_6.id if rec.allss_parent_id_6 else None,
+                rec.allss_parent_id_5.id if rec.allss_parent_id_5 else None,
+                rec.allss_parent_id_4.id if rec.allss_parent_id_4 else None,
+                rec.allss_parent_id_3.id if rec.allss_parent_id_3 else None,
+                rec.allss_group_id.id if rec.allss_group_id else None,
+            )
+
+            if key not in first_balance_map:
+                first_balance_map[key] = rec.allss_previous_balance or 0.0
+
         for group_line in result:
-            domain_line = group_line.get("__domain", [])
-            try:
-                # Busca a menor data dentro do domínio do grupo
-                where_calc = self._where_calc(domain_line)
-                query_obj = getattr(where_calc, "query", None)
+            key = (
+                group_line.get('allss_company_id'),
+                group_line.get('allss_account_id'),
+                group_line.get('allss_account_analytic_id'),
+                group_line.get('allss_parent_id_6'),
+                group_line.get('allss_parent_id_5'),
+                group_line.get('allss_parent_id_4'),
+                group_line.get('allss_parent_id_3'),
+                group_line.get('allss_group_id'),
+            )
 
-                if not query_obj:
-                    continue
+            previous = first_balance_map.get(key, 0.0)
 
-                query_sql = str(query_obj)
-                params = getattr(query_obj, "params", [])
-
-                self.env.cr.execute(f"""
-                    SELECT MIN(allss_date) AS first_date
-                    FROM allss_balance_account_analytic
-                    WHERE {query_sql}
-                """, params)
-                row = self.env.cr.dictfetchone()
-                first_date = row.get("first_date") if row else None
-
-                prev_balance = 0
-                if first_date:
-                    self.env.cr.execute(f"""
-                        SELECT allss_final_balance
-                        FROM allss_balance_account_analytic
-                        WHERE allss_date < %s
-                        AND {query_sql}
-                        ORDER BY allss_date DESC
-                        LIMIT 1
-                    """, [first_date] + params)
-                    row_prev = self.env.cr.dictfetchone()
-                    prev_balance = row_prev.get("allss_final_balance", 0) if row_prev else 0
-
-                group_line["allss_previous_balance"] = prev_balance
-                group_line["allss_final_balance"] = (
-                    prev_balance
-                    + group_line.get("allss_debit", 0)
-                    - group_line.get("allss_credit", 0)
-                )
-
-            except Exception as e:
-                _logger.error("Erro ao processar grupo %s: %s", group_line, e)
+            group_line['allss_previous_balance'] = previous
+            group_line['allss_final_balance'] = (
+                previous
+                + group_line.get('allss_debit', 0.0)
+                - group_line.get('allss_credit', 0.0)
+            )
 
         return result
+
 
      
     def open_document(self, options=None, params=None):
