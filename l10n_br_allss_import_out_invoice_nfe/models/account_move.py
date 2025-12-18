@@ -12,23 +12,23 @@ _logger = logging.getLogger(__name__)
 from odoo import fields, models             #, _, Command
 # from dateutil import parser
 # from datetime import datetime
-# from lxml import objectify
+from lxml import objectify
 from odoo.exceptions import UserError       #, ValidationError
 
 # from odoo import api
 # from contextlib import contextmanager
 
 
-# def convert(obj, conversion=None):
-#     if conversion:
-#         return conversion(obj.text)
-#     if isinstance(obj, objectify.StringElement):
-#         return str(obj)
-#     if isinstance(obj, objectify.IntElement):
-#         return int(obj)
-#     if isinstance(obj, objectify.FloatElement):
-#         return float(obj)
-#     raise f"Tipo não implementado {type(obj)}"
+def convert(obj, conversion=None):
+    if conversion:
+        return conversion(obj.text)
+    if isinstance(obj, objectify.StringElement):
+        return str(obj)
+    if isinstance(obj, objectify.IntElement):
+        return int(obj)
+    if isinstance(obj, objectify.FloatElement):
+        return float(obj)
+    raise f"Tipo não implementado {type(obj)}"
 
 
 def get(obj, path, conversion=None):
@@ -460,7 +460,7 @@ class AllssAccountMoveNfeImport(models.Model):
                 product = marketplace_products[0]
 
                 _logger.warning(
-                    f'ALLSS Marketplace PRIORITÁRIO → {product.display_name}'
+                    f'ALLSS Marketplace PRIORITÁRIO  {product.display_name}'
                 )
 
                 account_move_line.update({
