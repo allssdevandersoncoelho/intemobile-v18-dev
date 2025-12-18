@@ -411,3 +411,28 @@ class AllssAccountMoveNfeImport(models.Model):
             'property_account_receivable_id': self._allss_get_account_receivable(res.name)})
 
         return res
+    
+
+    def import_nfe(self, auto, company_id, nfe, nfe_xml, dfe, 
+                   partner_automation=False,
+                   account_invoice_automation=False, 
+                   tax_automation=False,
+                   supplierinfo_automation=False, 
+                   fiscal_position_id=False,
+                   payment_term_id=False, 
+                   account_move_dict=None, 
+                   purchase_order_automation=False):
+
+        _logger.warning(f"+++Contexto import_nfe:  {self.env.context}")
+
+        return super().import_nfe(
+            auto, company_id, nfe, nfe_xml, dfe,
+            partner_automation,
+            account_invoice_automation,
+            tax_automation,
+            supplierinfo_automation,
+            fiscal_position_id,
+            payment_term_id,
+            account_move_dict,
+            purchase_order_automation
+        )
