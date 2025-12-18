@@ -57,6 +57,7 @@ class BalanceAccountAnalytic(models.Model):
                 query_sql = str(query_obj)
                 params = getattr(query_obj, "params", [])
 
+                # Pega a primeira data para o cálculo do saldo anterior
                 self.env.cr.execute(f"""
                     SELECT MIN(allss_date) AS first_date
                     FROM allss_balance_account_analytic
@@ -78,6 +79,7 @@ class BalanceAccountAnalytic(models.Model):
                     row_prev = self.env.cr.dictfetchone()
                     prev_balance = row_prev.get("allss_final_balance", 0) if row_prev else 0
 
+                # Ajusta saldo do grupo
                 group_line["allss_previous_balance"] = prev_balance
                 group_line["allss_final_balance"] = (
                     prev_balance
@@ -85,10 +87,28 @@ class BalanceAccountAnalytic(models.Model):
                     - group_line.get("allss_credit", 0)
                 )
 
+                for lvl in [3, 4, 5, 6]:
+                    field_name = f"allss_parent_id_{lvl}"
+                    if not group_line.get(field_name):
+                        # Tenta herdar do grupo direto
+                        account_group_id = group_line.get("allss_group_id")
+                        if account_group_id:
+                            account_group = self.env['account.group'].browse(account_group_id)
+                            # Ajuste hierárquico
+                            if lvl == 6 and account_group.parent_id and account_group.parent_id.parent_id and account_group.parent_id.parent_id.parent_id:
+                                group_line[field_name] = account_group.parent_id.parent_id.parent_id.id
+                            elif lvl == 5 and account_group.parent_id and account_group.parent_id.parent_id:
+                                group_line[field_name] = account_group.parent_id.parent_id.id
+                            elif lvl == 4 and account_group.parent_id:
+                                group_line[field_name] = account_group.parent_id.id
+                            elif lvl == 3:
+                                group_line[field_name] = account_group.id
+
             except Exception as e:
                 _logger.error("Erro ao processar grupo %s: %s", group_line, e)
 
         return result
+
 
      
     def open_document(self, options=None, params=None):
