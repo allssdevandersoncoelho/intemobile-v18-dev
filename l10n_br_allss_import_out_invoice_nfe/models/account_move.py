@@ -435,8 +435,8 @@ class AllssAccountMoveNfeImport(models.Model):
     def create_account_move_line(self, item, company_id, partner_id, supplier_automation,
                                  tax_automation, fiscal_position_id=None, account_move_dict=None):
         
-        
-        result = super().create_account_move_line(self, item, company_id, partner_id, supplier_automation,
+
+        result = super().create_account_move_line(item, company_id, partner_id, supplier_automation,
                                  tax_automation, fiscal_position_id=None, account_move_dict=None)
 
         account_move_line, operation = result
