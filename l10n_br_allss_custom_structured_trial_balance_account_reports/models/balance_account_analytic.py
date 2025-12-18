@@ -446,67 +446,34 @@ class BalanceAccountAnalytic(models.Model):
     def execute_sql(self):
         cr = self._cr
 
-        # Limpa a tabela
         cr.execute("DELETE FROM allss_balance_account_analytic;")
 
-        # Conta analítica padrão
+        # Conta analítica padrão (já existe, ex: código 1001)
         account_analytic_id, analytic_plan_id = account_analytic_def(self)
-        if not account_analytic_id:
-            raise ValueError("Conta analítica padrão não configurada.")
+
+        # Usa NULL apenas se realmente vier None (mesma lógica do SQL original)
+        account_analytic_id_sql = (
+            str(account_analytic_id)
+            if account_analytic_id
+            else 'NULL'
+        )
 
         sql = f"""
-        WITH aml_raw AS (
-            -- Movimentações reais
+        WITH aml_expanded AS (
             SELECT
                 aml.company_id,
                 aml.account_id,
                 aml.date::date AS date,
-                COALESCE(
-                    ad.account_id,
-                    {account_analytic_id}
-                ) AS analytic_account_id,
+                COALESCE(ad.account_id, {account_analytic_id_sql}) AS analytic_account_id,
                 aml.debit,
                 aml.credit
             FROM account_move_line aml
             JOIN account_move am
                 ON am.id = aml.move_id
             AND am.state = 'posted'
-
             LEFT JOIN LATERAL (
                 SELECT (jsonb_object_keys(aml.analytic_distribution))::int AS account_id
             ) ad ON TRUE
-        ),
-
-        aml_calendar AS (
-            -- Garante linha no dia 01 de cada mês
-            SELECT
-                r.company_id,
-                r.account_id,
-                gs::date AS date,
-                r.analytic_account_id,
-                0::numeric AS debit,
-                0::numeric AS credit
-            FROM (
-                SELECT DISTINCT
-                    company_id,
-                    account_id,
-                    analytic_account_id,
-                    date_trunc('month', MIN(date)) AS min_date
-                FROM aml_raw
-                GROUP BY company_id, account_id, analytic_account_id
-            ) r
-            JOIN generate_series(
-                r.min_date,
-                CURRENT_DATE,
-                interval '1 month'
-            ) gs ON TRUE
-        ),
-
-        aml_union AS (
-            -- Junta calendário + movimentos reais
-            SELECT * FROM aml_calendar
-            UNION ALL
-            SELECT * FROM aml_raw
         ),
 
         aml_grouped AS (
@@ -517,7 +484,7 @@ class BalanceAccountAnalytic(models.Model):
                 date,
                 SUM(debit) AS debit,
                 SUM(credit) AS credit
-            FROM aml_union
+            FROM aml_expanded
             GROUP BY
                 company_id,
                 account_id,
@@ -540,15 +507,15 @@ class BalanceAccountAnalytic(models.Model):
 
         aml_final AS (
             SELECT
-                b.*,
-                LAG(b.final_balance, 1, 0) OVER (
+                *,
+                LAG(final_balance, 1, 0) OVER (
                     PARTITION BY
-                        b.company_id,
-                        b.account_id,
-                        b.analytic_account_id
-                    ORDER BY b.date
+                        company_id,
+                        account_id,
+                        analytic_account_id
+                    ORDER BY date
                 ) AS previous_balance
-            FROM aml_balance b
+            FROM aml_balance
         )
 
         INSERT INTO allss_balance_account_analytic (
@@ -557,18 +524,9 @@ class BalanceAccountAnalytic(models.Model):
             create_date,
             write_uid,
             write_date,
-
             allss_company_id,
-            allss_parent_id_6,
-            allss_parent_id_5,
-            allss_parent_id_4,
-            allss_parent_id_3,
-            allss_group_id,
-
             allss_account_id,
             allss_account_analytic_id,
-            allss_analytic_plan_id,
-
             allss_date,
             allss_previous_balance,
             allss_debit,
@@ -581,50 +539,19 @@ class BalanceAccountAnalytic(models.Model):
             CURRENT_DATE,
             1,
             CURRENT_DATE,
-
             f.company_id,
-
-            g6.id AS parent_id_6,
-            g5.id AS parent_id_5,
-            g4.id AS parent_id_4,
-            g3.id AS parent_id_3,
-            g2.id AS group_id,
-
             f.account_id,
             f.analytic_account_id,
-            aa.plan_id,
-
             f.date,
             f.previous_balance,
             f.debit,
             f.credit,
             f.final_balance
-
-        FROM aml_final f
-
-        -- Conta contábil
-        JOIN account_account acc
-            ON acc.id = f.account_id
-
-        -- Grupo da conta (modelo correto do Odoo 18)
-        LEFT JOIN account_group_account_rel rel
-            ON rel.account_account_id = acc.id
-
-        LEFT JOIN account_group g2 ON g2.id = rel.account_group_id
-        LEFT JOIN account_group g3 ON g3.id = g2.parent_id
-        LEFT JOIN account_group g4 ON g4.id = g3.parent_id
-        LEFT JOIN account_group g5 ON g5.id = g4.parent_id
-        LEFT JOIN account_group g6 ON g6.id = g5.parent_id
-
-        -- Conta analítica
-        LEFT JOIN account_analytic_account aa
-            ON aa.id = f.analytic_account_id
-        ;
+        FROM aml_final f;
         """
 
         cr.execute(sql)
 
-        # Ajusta a sequence
         cr.execute("""
             BEGIN;
                 LOCK TABLE allss_balance_account_analytic IN EXCLUSIVE MODE;
@@ -635,7 +562,6 @@ class BalanceAccountAnalytic(models.Model):
                 );
             COMMIT;
         """)
-
 
 
 
