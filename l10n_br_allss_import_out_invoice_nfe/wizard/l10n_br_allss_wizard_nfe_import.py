@@ -39,7 +39,7 @@ class L10nBrAlssWizardNfeImport(models.TransientModel):
                                                                         ).sudo()
         company_id = self.env.company.sudo()
 
-        obj_account_move.import_nfe(
+        move = obj_account_move.import_nfe(
             auto, company_id, nfe, xml, False,
             company_id.l10n_br_allss_partner_automation,
             company_id.l10n_br_allss_invoice_automation, 
@@ -49,5 +49,10 @@ class L10nBrAlssWizardNfeImport(models.TransientModel):
             account_move_dict=False,
             purchase_order_automation=company_id.l10n_br_allss_purchase_order_automation
         )
+
+        if move and self.l10n_br_allss_picking_type_id:
+            move.write({
+                'l10n_br_allss_picking_type_id': self.l10n_br_allss_picking_type_id.id
+            })
         
         return True if obj_account_move else False
