@@ -421,6 +421,14 @@ class AllssAccountMoveNfeImport(models.Model):
 
         return res
     
+    def l10n_br_allss_get_journal_id(self, company_id, type):
+        res = super().l10n_br_allss_get_journal_id(company_id, type)
+
+        wizard_journal = self.env.context.get('l10n_br_allss_journal_id')
+        if wizard_journal:
+            return wizard_journal
+        
+        return res
 
     def import_nfe(self, auto, company_id, nfe, nfe_xml, dfe, 
                    partner_automation=False,
@@ -446,15 +454,15 @@ class AllssAccountMoveNfeImport(models.Model):
             purchase_order_automation
         )
 
-        if not move:
-            return move
+        # if not move:
+        #     return move
 
-        ctx = self.env.context
-        company = move.company_id
+        # ctx = self.env.context
+        # company = move.company_id
 
-        if (company.l10n_br_allss_invoice_automation and ctx.get('l10n_br_allss_journal_id')):
-            move.sudo().write({
-                'journal_id': ctx['l10n_br_allss_journal_id'].id
-            })
+        # if (company.l10n_br_allss_invoice_automation and ctx.get('l10n_br_allss_journal_id')):
+        #     move.sudo().write({
+        #         'journal_id': ctx['l10n_br_allss_journal_id'].id
+        #     })
 
         return move
