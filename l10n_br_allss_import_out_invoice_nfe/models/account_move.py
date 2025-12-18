@@ -320,7 +320,7 @@ class AllssAccountMoveNfeImport(models.Model):
 
                 
                 stock_picking.button_validate()
-                self._compute_picking()
+                # self._compute_picking()
 
         return super().action_post()
     
