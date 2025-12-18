@@ -27,7 +27,7 @@
                 <h2>
                     <span class="o_form_label" invisible="state != 'done'">Importação concluída com sucesso!</span>
                 </h2>
-                <button name="l10n_br_allss_action_import_nfe"
+                <button name="l10n_br_allss_action_import_nfe_out_invoice"
                         string="Importar" type="object"
                         class="oe_highlight"
                         invisible="state in ('error', 'done')"
