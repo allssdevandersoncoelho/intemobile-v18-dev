@@ -1,9 +1,9 @@
-import re
+# import re
 import logging
 
-from odoo import fields, models, api, _, tools
+from odoo import fields, models, api, _     #, tools
 from .allss_funtions import account_analytic_def
-import odoo.addons.decimal_precision as dp
+# import odoo.addons.decimal_precision as dp
 
 _logger = logging.getLogger(__name__)
 
@@ -26,12 +26,12 @@ class BalanceAccountAnalytic(models.Model):
     allss_account_analytic_id = fields.Many2one('account.analytic.account', string='Conta Analítica', store=True,index=True)
     allss_analytic_plan_id = fields.Many2one('account.analytic.plan', string='Plano Analítico', store=True,index=True)
 
-    allss_date = fields.Date("Data", store=True, index=True)
+    allss_date = fields.Date(string="Data", store=True, index=True)
 
-    allss_previous_balance = fields.Float("Saldo Anterior", store=True, index=True, digits=dp.get_precision('Account Balance'))
-    allss_debit = fields.Float("Débito", store=True, index=True, digits=dp.get_precision('Account Balance'))
-    allss_credit = fields.Float("Crédito", store=True, index=True, digits=dp.get_precision('Account Balance'))
-    allss_final_balance = fields.Float("Saldo Atual", store=True, index=True, digits=dp.get_precision('Account Balance'))
+    allss_previous_balance = fields.Float(string="Saldo Anterior", store=True, index=True, digits='Account Balance')
+    allss_debit = fields.Float(string="Débito", store=True, index=True, digits='Account Balance')
+    allss_credit = fields.Float(string="Crédito", store=True, index=True, digits='Account Balance')
+    allss_final_balance = fields.Float(string="Saldo Atual", store=True, index=True, digits='Account Balance')
 
 
 
@@ -57,7 +57,6 @@ class BalanceAccountAnalytic(models.Model):
                 query_sql = str(query_obj)
                 params = getattr(query_obj, "params", [])
 
-                # Pega a primeira data para o cálculo do saldo anterior
                 self.env.cr.execute(f"""
                     SELECT MIN(allss_date) AS first_date
                     FROM allss_balance_account_analytic
@@ -79,7 +78,6 @@ class BalanceAccountAnalytic(models.Model):
                     row_prev = self.env.cr.dictfetchone()
                     prev_balance = row_prev.get("allss_final_balance", 0) if row_prev else 0
 
-                # Ajusta saldo do grupo
                 group_line["allss_previous_balance"] = prev_balance
                 group_line["allss_final_balance"] = (
                     prev_balance
@@ -87,28 +85,10 @@ class BalanceAccountAnalytic(models.Model):
                     - group_line.get("allss_credit", 0)
                 )
 
-                for lvl in [3, 4, 5, 6]:
-                    field_name = f"allss_parent_id_{lvl}"
-                    if not group_line.get(field_name):
-                        # Tenta herdar do grupo direto
-                        account_group_id = group_line.get("allss_group_id")
-                        if account_group_id:
-                            account_group = self.env['account.group'].browse(account_group_id)
-                            # Ajuste hierárquico
-                            if lvl == 6 and account_group.parent_id and account_group.parent_id.parent_id and account_group.parent_id.parent_id.parent_id:
-                                group_line[field_name] = account_group.parent_id.parent_id.parent_id.id
-                            elif lvl == 5 and account_group.parent_id and account_group.parent_id.parent_id:
-                                group_line[field_name] = account_group.parent_id.parent_id.id
-                            elif lvl == 4 and account_group.parent_id:
-                                group_line[field_name] = account_group.parent_id.id
-                            elif lvl == 3:
-                                group_line[field_name] = account_group.id
-
             except Exception as e:
                 _logger.error("Erro ao processar grupo %s: %s", group_line, e)
 
         return result
-
 
      
     def open_document(self, options=None, params=None):
@@ -130,212 +110,273 @@ class BalanceAccountAnalytic(models.Model):
 
 
 
-
-
+    
 
     # def execute_sql(self):
-    #     cr = self._cr
-
-    #     cr.execute("DELETE FROM allss_balance_account_analytic;")
-
-    #     account_analytic_id, analytic_plan_id = account_analytic_def(self)
-
-    #     account_analytic_id_sql = (
-    #         str(account_analytic_id) if account_analytic_id else 'NULL'
-    #     )
+    #     # Limpa a tabela antes de inserir
+    #     self._cr.execute("DELETE FROM public.allss_balance_account_analytic;")
+        
+    #     # ID da conta analítica padrão (pode ser None)
+    #     account_analytic_id = account_analytic_def(self)[0] or 'NULL'
 
     #     sql = f"""
-    #     WITH aml_expanded AS (
+    #     WITH
+    #     -- Linhas com distribuição analítica
+    #     dist AS (
     #         SELECT
     #             aml.company_id,
     #             aml.account_id,
-    #             aml.date::date AS date,
-
-    #             /* Analítica vinda do json OU padrão */
-    #             COALESCE(ad.analytic_account_id, {account_analytic_id_sql}) AS analytic_account_id,
-
+    #             NULLIF((kv.key)::int, 0) AS analytic_account_id,  -- evita ID=0
+    #             (kv.value)::numeric AS weight,
     #             aml.debit,
-    #             aml.credit
+    #             aml.credit,
+    #             aml.date
     #         FROM account_move_line aml
-    #         JOIN account_move am
-    #             ON am.id = aml.move_id
-    #         AND am.state = 'posted'
-
-    #         LEFT JOIN LATERAL (
-    #             SELECT key::int AS analytic_account_id
-    #             FROM jsonb_each(aml.analytic_distribution)
-    #         ) ad ON aml.analytic_distribution IS NOT NULL
+    #         CROSS JOIN LATERAL jsonb_each(aml.analytic_distribution::jsonb) AS kv(key, value)
+    #         WHERE aml.analytic_distribution IS NOT NULL
+    #         AND aml.analytic_distribution::text <> '{{}}'
     #     ),
 
-    #     aml_grouped AS (
+    #     -- Linhas sem distribuição, atribuídas a conta analítica padrão OU NULL
+    #     nodist AS (
+    #         SELECT
+    #             aml.company_id,
+    #             aml.account_id,
+    #             NULLIF({account_analytic_id}, 0)::int AS analytic_account_id,  -- nunca 0
+    #             1.0::numeric AS weight,
+    #             aml.debit,
+    #             aml.credit,
+    #             aml.date
+    #         FROM account_move_line aml
+    #         WHERE aml.analytic_distribution IS NULL
+    #         OR aml.analytic_distribution::text = '{{}}'
+    #     ),
+
+    #     -- Une todas as linhas
+    #     all_rows AS (
+    #         SELECT * FROM dist
+    #         UNION ALL
+    #         SELECT * FROM nodist
+    #     ),
+
+    #     -- Mantém SOMENTE IDs válidos que existam em account_analytic_account
+    #     valid_rows AS (
+    #         SELECT
+    #             r.*
+    #         FROM all_rows r
+    #         LEFT JOIN account_analytic_account aac
+    #             ON aac.id = r.analytic_account_id
+    #         WHERE r.analytic_account_id IS NULL
+    #         OR aac.id IS NOT NULL  -- garante FK existente
+    #     ),
+
+    #     -- Aplica o peso
+    #     normalized AS (
     #         SELECT
     #             company_id,
     #             account_id,
     #             analytic_account_id,
     #             date,
-    #             SUM(debit) AS debit,
-    #             SUM(credit) AS credit
-    #         FROM aml_expanded
-    #         GROUP BY
+    #             debit,
+    #             credit,
+    #             CASE WHEN weight > 1 THEN weight / 100.0 ELSE weight END AS normalized_weight
+    #         FROM valid_rows
+    #     ),
+
+    #     -- Soma por linha de data real (não só por mês)
+    #     summed AS (
+    #         SELECT
     #             company_id,
     #             account_id,
     #             analytic_account_id,
-    #             date
+    #             date,
+    #             SUM(debit * normalized_weight) AS debit,
+    #             SUM(credit * normalized_weight) AS credit
+    #         FROM normalized
+    #         GROUP BY company_id, account_id, analytic_account_id, date
     #     ),
 
-    #     aml_balance AS (
+    #     -- Calcula o saldo final acumulado
+    #     balances AS (
     #         SELECT
-    #             g.*,
-    #             SUM(g.debit - g.credit) OVER (
-    #                 PARTITION BY
-    #                     g.company_id,
-    #                     g.account_id,
-    #                     g.analytic_account_id
-    #                 ORDER BY g.date
-    #             ) AS final_balance
-    #         FROM aml_grouped g
+    #             company_id AS allss_company_id,
+    #             account_id AS allss_account_id,
+    #             analytic_account_id AS allss_account_analytic_id,
+    #             debit AS allss_debit,
+    #             credit AS allss_credit,
+    #             date AS allss_date,
+    #             SUM(debit - credit) OVER (
+    #                 PARTITION BY company_id, account_id, analytic_account_id
+    #                 ORDER BY date, account_id
+    #                 ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    #             ) AS allss_final_balance
+    #         FROM summed
     #     ),
 
-    #     aml_final AS (
+    #     -- Calcula saldo anterior (previous_balance)
+    #     with_prev AS (
     #         SELECT
-    #             *,
-    #             LAG(final_balance, 1, 0) OVER (
-    #                 PARTITION BY
-    #                     company_id,
-    #                     account_id,
-    #                     analytic_account_id
-    #                 ORDER BY date
-    #             ) AS previous_balance
-    #         FROM aml_balance
+    #             b.*,
+    #             LAG(allss_final_balance, 1, 0) OVER (
+    #                 PARTITION BY allss_company_id, allss_account_id, allss_account_analytic_id
+    #                 ORDER BY allss_date, allss_account_id
+    #             ) AS allss_previous_balance
+    #         FROM balances b
     #     )
 
-    #     INSERT INTO allss_balance_account_analytic (
-    #         id,
-    #         create_uid,
-    #         create_date,
-    #         write_uid,
-    #         write_date,
+    #     -- Insere os resultados na tabela final
+    #     INSERT INTO public.allss_balance_account_analytic (
     #         allss_company_id,
     #         allss_account_id,
     #         allss_account_analytic_id,
+    #         allss_analytic_plan_id,
     #         allss_date,
-    #         allss_previous_balance,
     #         allss_debit,
     #         allss_credit,
-    #         allss_final_balance
+    #         allss_previous_balance,
+    #         allss_final_balance,
+    #         allss_group_id,
+    #         allss_parent_id_3,
+    #         allss_parent_id_4,
+    #         allss_parent_id_5,
+    #         allss_parent_id_6
     #     )
     #     SELECT
-    #         row_number() OVER () AS id,
-    #         1,
-    #         CURRENT_DATE,
-    #         1,
-    #         CURRENT_DATE,
-    #         f.company_id,
-    #         f.account_id,
-    #         f.analytic_account_id,
-    #         f.date,
-    #         f.previous_balance,
-    #         f.debit,
-    #         f.credit,
-    #         f.final_balance
-    #     FROM aml_final f;
+    #         wp.allss_company_id,
+    #         wp.allss_account_id,
+    #         wp.allss_account_analytic_id,
+    #         aac.plan_id AS allss_analytic_plan_id,
+    #         wp.allss_date,
+    #         wp.allss_debit,
+    #         wp.allss_credit,
+    #         wp.allss_previous_balance,
+    #         wp.allss_final_balance,
+    #         NULL AS allss_group_id,
+    #         NULL AS allss_parent_id_3,
+    #         NULL AS allss_parent_id_4,
+    #         NULL AS allss_parent_id_5,
+    #         NULL AS allss_parent_id_6
+    #     FROM with_prev wp
+    #     LEFT JOIN account_analytic_account aac
+    #         ON aac.id = wp.allss_account_analytic_id
+    #     ORDER BY wp.allss_company_id, wp.allss_account_id, wp.allss_account_analytic_id, wp.allss_date;
     #     """
 
-    #     cr.execute(sql)
+    #     self._cr.execute(sql)
 
-    #     cr.execute("""
-    #         SELECT setval(
-    #             'allss_balance_account_analytic_id_seq',
-    #             COALESCE((SELECT MAX(id) FROM allss_balance_account_analytic), 0) + 1,
-    #             false
-    #         );
+    #     # Atualiza sequência da tabela
+    #     self._cr.execute("""
+    #         BEGIN;
+    #             LOCK TABLE allss_balance_account_analytic IN EXCLUSIVE MODE;
+    #             SELECT setval(
+    #                 'allss_balance_account_analytic_id_seq',
+    #                 COALESCE((SELECT MAX(id)+1 FROM allss_balance_account_analytic), 1),
+    #                 false
+    #             );
+    #         COMMIT;
     #     """)
 
 
-
     def execute_sql(self):
-        cr = self._cr
+        # Limpa a tabela antes de inserir
+        self._cr.execute("DELETE FROM public.allss_balance_account_analytic;")
 
-        # Limpa a tabela antes
-        cr.execute("DELETE FROM allss_balance_account_analytic;")
-
-        # Conta analítica padrão
-        account_analytic_id, analytic_plan_id = account_analytic_def(self)
-        account_analytic_id_sql = str(account_analytic_id) if account_analytic_id else 'NULL'
+        account_analytic_id = int(account_analytic_def(self)[0] or 0)
 
         sql = f"""
-        WITH aml_expanded AS (
+        WITH
+        dist AS (
             SELECT
                 aml.company_id,
                 aml.account_id,
-                aml.date::date AS date,
-                COALESCE(ad.analytic_account_id, {account_analytic_id_sql}) AS analytic_account_id,
+                NULLIF(kv.key::int, 0) AS analytic_account_id,
+                aml.date,
+                aml.debit * (
+                    CASE
+                        WHEN (kv.value)::numeric > 1
+                        THEN (kv.value)::numeric / 100.0
+                        ELSE (kv.value)::numeric
+                    END
+                ) AS debit,
+                aml.credit * (
+                    CASE
+                        WHEN (kv.value)::numeric > 1
+                        THEN (kv.value)::numeric / 100.0
+                        ELSE (kv.value)::numeric
+                    END
+                ) AS credit
+            FROM account_move_line aml
+            JOIN account_move am
+                ON am.id = aml.move_id
+            AND am.state = 'posted'
+            JOIN LATERAL jsonb_each(aml.analytic_distribution::jsonb)
+                AS kv(key, value)
+                ON aml.analytic_distribution IS NOT NULL
+            AND aml.analytic_distribution::text <> '{{}}'
+        ),
+        nodist AS (
+            SELECT
+                aml.company_id,
+                aml.account_id,
+                NULLIF({account_analytic_id}, 0)::int AS analytic_account_id,
+                aml.date,
                 aml.debit,
                 aml.credit
             FROM account_move_line aml
-            JOIN account_move am ON am.id = aml.move_id AND am.state = 'posted'
-            LEFT JOIN LATERAL (
-                SELECT key::int AS analytic_account_id
-                FROM jsonb_each(aml.analytic_distribution)
-            ) ad ON aml.analytic_distribution IS NOT NULL
+            JOIN account_move am
+                ON am.id = aml.move_id
+            AND am.state = 'posted'
+            WHERE aml.analytic_distribution IS NULL
+            OR aml.analytic_distribution::text = '{{}}'
         ),
-
-        aml_grouped AS (
+        all_rows AS (
+            SELECT * FROM dist
+            UNION ALL
+            SELECT * FROM nodist
+        ),
+        summed AS (
             SELECT
                 company_id,
                 account_id,
                 analytic_account_id,
                 date,
-                SUM(debit) AS debit,
+                SUM(debit)  AS debit,
                 SUM(credit) AS credit
-            FROM aml_expanded
+            FROM all_rows
             GROUP BY company_id, account_id, analytic_account_id, date
         ),
-
-        aml_balance AS (
+        balances AS (
             SELECT
-                g.*,
-                SUM(g.debit - g.credit) OVER (
-                    PARTITION BY g.company_id, g.account_id, g.analytic_account_id
-                    ORDER BY g.date
-                ) AS final_balance
-            FROM aml_grouped g
+                company_id AS allss_company_id,
+                account_id AS allss_account_id,
+                analytic_account_id AS allss_account_analytic_id,
+                date AS allss_date,
+                debit AS allss_debit,
+                credit AS allss_credit,
+                SUM(debit - credit) OVER (
+                    PARTITION BY company_id, account_id, analytic_account_id
+                    ORDER BY date, account_id
+                ) AS allss_final_balance
+            FROM summed
         ),
-
-        aml_final AS (
+        with_prev AS (
             SELECT
                 b.*,
-                LAG(final_balance, 1, 0) OVER (
-                    PARTITION BY company_id, account_id, analytic_account_id
-                    ORDER BY date
-                ) AS previous_balance,
-                acc.group_id AS allss_group_id,
-                g3.parent_id AS allss_parent_id_5,
-                g4.parent_id AS allss_parent_id_4,
-                g5.parent_id AS allss_parent_id_3,
-                g6.parent_id AS allss_parent_id_6
-            FROM aml_balance b
-            JOIN account_account acc ON acc.id = b.account_id
-            LEFT JOIN account_group g3 ON g3.id = acc.group_id
-            LEFT JOIN account_group g4 ON g4.id = g3.parent_id
-            LEFT JOIN account_group g5 ON g5.id = g4.parent_id
-            LEFT JOIN account_group g6 ON g6.id = g5.parent_id
+                LAG(allss_final_balance, 1, 0) OVER (
+                    PARTITION BY allss_company_id, allss_account_id, allss_account_analytic_id
+                    ORDER BY allss_date, allss_account_id
+                ) AS allss_previous_balance
+            FROM balances b
         )
-
-        INSERT INTO allss_balance_account_analytic (
-            id,
-            create_uid,
-            create_date,
-            write_uid,
-            write_date,
+        INSERT INTO public.allss_balance_account_analytic (
             allss_company_id,
             allss_account_id,
             allss_account_analytic_id,
             allss_analytic_plan_id,
             allss_date,
-            allss_previous_balance,
             allss_debit,
             allss_credit,
+            allss_previous_balance,
             allss_final_balance,
             allss_group_id,
             allss_parent_id_3,
@@ -344,38 +385,42 @@ class BalanceAccountAnalytic(models.Model):
             allss_parent_id_6
         )
         SELECT
-            row_number() OVER () AS id,
-            1,
-            CURRENT_DATE,
-            1,
-            CURRENT_DATE,
-            f.company_id,
-            f.account_id,
-            f.analytic_account_id,
-            {analytic_plan_id or 'NULL'} AS allss_analytic_plan_id,
-            f.date,
-            f.previous_balance,
-            f.debit,
-            f.credit,
-            f.final_balance,
-            f.allss_group_id,
-            f.allss_parent_id_5,
-            f.allss_parent_id_4,
-            f.allss_parent_id_3,
-            f.allss_parent_id_6
-        FROM aml_final f;
-        
-        -- Atualiza sequência
-        SELECT setval(
-            'allss_balance_account_analytic_id_seq',
-            COALESCE((SELECT MAX(id) FROM allss_balance_account_analytic), 0) + 1,
-            false
-        );
+            wp.allss_company_id,
+            wp.allss_account_id,
+            wp.allss_account_analytic_id,
+            aac.plan_id AS allss_analytic_plan_id,
+            wp.allss_date,
+            wp.allss_debit,
+            wp.allss_credit,
+            wp.allss_previous_balance,
+            wp.allss_final_balance,
+            NULL,
+            NULL,
+            NULL,
+            NULL,
+            NULL
+        FROM with_prev wp
+        LEFT JOIN account_analytic_account aac
+            ON aac.id = wp.allss_account_analytic_id
+        ORDER BY
+            wp.allss_company_id,
+            wp.allss_account_id,
+            wp.allss_account_analytic_id,
+            wp.allss_date;
         """
 
-        cr.execute(sql)
+        self._cr.execute(sql)
 
-
+        self._cr.execute("""
+            BEGIN;
+                LOCK TABLE allss_balance_account_analytic IN EXCLUSIVE MODE;
+                SELECT setval(
+                    'allss_balance_account_analytic_id_seq',
+                    COALESCE((SELECT MAX(id) + 1 FROM allss_balance_account_analytic), 1),
+                    false
+                );
+            COMMIT;
+        """)
 
 
 

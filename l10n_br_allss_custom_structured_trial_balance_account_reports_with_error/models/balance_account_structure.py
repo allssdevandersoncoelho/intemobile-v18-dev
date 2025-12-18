@@ -1,8 +1,8 @@
 import re
 import logging
-from odoo import fields, models, api, _     #, tools
-# import odoo.addons.decimal_precision as dp
-# from datetime import date
+from odoo import fields, models, api, _, tools
+import odoo.addons.decimal_precision as dp
+from datetime import date
 
 _logger = logging.getLogger(__name__)
 
@@ -76,10 +76,10 @@ class BalanceAccountStructure(models.Model):
 
     allss_date = fields.Date("Data", store=True, index=True)
 
-    allss_previous_balance = fields.Float("Saldo Anterior", store=True, index=True, digits='Account Balance')
-    allss_debit = fields.Float("Débito", store=True, index=True, digits='Account Balance')
-    allss_credit = fields.Float("Crédito", store=True, index=True, digits='Account Balance')
-    allss_final_balance = fields.Float("Saldo Atual", store=True, index=True, digits='Account Balance')
+    allss_previous_balance = fields.Float("Saldo Anterior", store=True, index=True, digits=dp.get_precision('Account Balance'))
+    allss_debit = fields.Float("Débito", store=True, index=True, digits=dp.get_precision('Account Balance'))
+    allss_credit = fields.Float("Crédito", store=True, index=True, digits=dp.get_precision('Account Balance'))
+    allss_final_balance = fields.Float("Saldo Atual", store=True, index=True, digits=dp.get_precision('Account Balance'))
 
     
 
@@ -238,18 +238,18 @@ class BalanceAccountStructure(models.Model):
                 mov.company_id,
                 mov.account_id,
                 date_trunc('month', gs)::date AS allss_date,
-                mov.allss_group_id,
-                mov.allss_parent_id_6,
-                mov.allss_parent_id_5,
-                mov.allss_parent_id_4,
-                mov.allss_parent_id_3
+                mov._allss_group_id,
+                mov._allss_parent_id_6,
+                mov._allss_parent_id_5,
+                mov._allss_parent_id_4,
+                mov._allss_parent_id_3
             FROM (
                 SELECT company_id, account_id, MIN(date) AS date,
-                    allss_group_id, allss_parent_id_6, allss_parent_id_5,
-                    allss_parent_id_4, allss_parent_id_3
+                    _allss_group_id, _allss_parent_id_6, _allss_parent_id_5,
+                    _allss_parent_id_4, _allss_parent_id_3
                 FROM account_move_line
-                GROUP BY company_id, account_id, allss_group_id, allss_parent_id_6,
-                        allss_parent_id_5, allss_parent_id_4, allss_parent_id_3
+                GROUP BY company_id, account_id, _allss_group_id, _allss_parent_id_6,
+                        _allss_parent_id_5, _allss_parent_id_4, _allss_parent_id_3
             ) mov
             INNER JOIN generate_series(
                 (SELECT MIN(date) FROM account_move_line),
@@ -331,25 +331,25 @@ class BalanceAccountStructure(models.Model):
                 NOW(),
                 aml.company_id,
 
-                COALESCE(aml.allss_parent_id_6,
-                        aml.allss_parent_id_5,
-                        aml.allss_parent_id_4,
-                        aml.allss_parent_id_3,
-                        aml.allss_group_id),
+                COALESCE(aml._allss_parent_id_6,
+                        aml._allss_parent_id_5,
+                        aml._allss_parent_id_4,
+                        aml._allss_parent_id_3,
+                        aml._allss_group_id),
 
-                COALESCE(aml.allss_parent_id_5,
-                        aml.allss_parent_id_4,
-                        aml.allss_parent_id_3,
-                        aml.allss_group_id),
+                COALESCE(aml._allss_parent_id_5,
+                        aml._allss_parent_id_4,
+                        aml._allss_parent_id_3,
+                        aml._allss_group_id),
 
-                COALESCE(aml.allss_parent_id_4,
-                        aml.allss_parent_id_3,
-                        aml.allss_group_id),
+                COALESCE(aml._allss_parent_id_4,
+                        aml._allss_parent_id_3,
+                        aml._allss_group_id),
 
-                COALESCE(aml.allss_parent_id_3,
-                        aml.allss_group_id),
+                COALESCE(aml._allss_parent_id_3,
+                        aml._allss_group_id),
 
-                aml.allss_group_id,
+                aml._allss_group_id,
 
                 aml.account_id,
                 aml.month_date,
@@ -383,11 +383,11 @@ class BalanceAccountStructure(models.Model):
                     SUM(l.credit) AS credit,
                     SUM(l.debit - l.credit) AS balance,
 
-                    l.allss_group_id,
-                    l.allss_parent_id_3,
-                    l.allss_parent_id_4,
-                    l.allss_parent_id_5,
-                    l.allss_parent_id_6
+                    l._allss_group_id,
+                    l._allss_parent_id_3,
+                    l._allss_parent_id_4,
+                    l._allss_parent_id_5,
+                    l._allss_parent_id_6
 
                 FROM account_move_line l
                 JOIN account_move m ON m.id = l.move_id AND m.state = 'posted'
@@ -401,11 +401,11 @@ class BalanceAccountStructure(models.Model):
                     l.company_id,
                     l.account_id,
                     month_date,
-                    l.allss_group_id,
-                    l.allss_parent_id_3,
-                    l.allss_parent_id_4,
-                    l.allss_parent_id_5,
-                    l.allss_parent_id_6
+                    l._allss_group_id,
+                    l._allss_parent_id_3,
+                    l._allss_parent_id_4,
+                    l._allss_parent_id_5,
+                    l._allss_parent_id_6
             ) aml
         """)
 

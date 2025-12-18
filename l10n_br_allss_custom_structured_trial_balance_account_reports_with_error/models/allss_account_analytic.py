@@ -285,11 +285,11 @@ class AccountMoveAnalytic(models.Model):
                         'allss_date': move_line.date,
                         'allss_debit': move_line.debit,
                         'allss_credit': move_line.credit,
-                        'allss_group_id': move_line.allss_group_id.id,
-                        'allss_parent_id_3': move_line.allss_parent_id_3.id,
-                        'allss_parent_id_4': move_line.allss_parent_id_4.id,
-                        'allss_parent_id_5': move_line.allss_parent_id_5.id,
-                        'allss_parent_id_6': move_line.allss_parent_id_6.id,
+                        'allss_group_id': move_line._allss_group_id.id,
+                        'allss_parent_id_3': move_line._allss_parent_id_3.id,
+                        'allss_parent_id_4': move_line._allss_parent_id_4.id,
+                        'allss_parent_id_5': move_line._allss_parent_id_5.id,
+                        'allss_parent_id_6': move_line._allss_parent_id_6.id,
                     }
 
                     # SE A PESQUISA GERAR RESULTADO ATUALIZA O CADASTRO
@@ -340,11 +340,11 @@ class AccountMoveAnalytic(models.Model):
                         'allss_date': move_line.date,
                         'allss_debit': -move_line.debit,
                         'allss_credit': -move_line.credit,
-                        'allss_group_id': move_line.allss_group_id.id,
-                        'allss_parent_id_3': move_line.allss_parent_id_3.id,
-                        'allss_parent_id_4': move_line.allss_parent_id_4.id,
-                        'allss_parent_id_5': move_line.allss_parent_id_5.id,
-                        'allss_parent_id_6': move_line.allss_parent_id_6.id,
+                        'allss_group_id': move_line._allss_group_id.id,
+                        'allss_parent_id_3': move_line._allss_parent_id_3.id,
+                        'allss_parent_id_4': move_line._allss_parent_id_4.id,
+                        'allss_parent_id_5': move_line._allss_parent_id_5.id,
+                        'allss_parent_id_6': move_line._allss_parent_id_6.id,
                     }
 
                     # SE A PESQUISA GERAR RESULTADO ATUALIZA O CADASTRO

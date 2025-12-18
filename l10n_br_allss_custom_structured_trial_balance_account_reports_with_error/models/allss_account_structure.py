@@ -172,14 +172,23 @@ def update_vals_structure(self, option, vals, data, res):
 class AccountMoveLine(models.Model):
     _inherit = "account.move.line"
 
-    allss_parent_id_6 = fields.Many2one(related='allss_parent_id_5.parent_id', string='1º Nível', store=True, index=True)
-    allss_parent_id_5 = fields.Many2one(related='allss_parent_id_4.parent_id', string='2º Nível', store=True, index=True)
-    allss_parent_id_4 = fields.Many2one(related='allss_parent_id_3.parent_id', string='3º Nível', store=True, index=True)
-    allss_parent_id_3 = fields.Many2one(related='allss_group_id.parent_id', string='4º Nível', store=True, index=True)
-    allss_group_id = fields.Many2one(related='account_id.group_id', string='5º Nível', store=True, index=True)
+    allss_group_id = fields.Many2one(related='account_id.group_id') 
+    
+    _allss_group_id = fields.Many2one(related='account_id.group_id')
+    _allss_parent_id_3 = fields.Many2one(related='_allss_group_id.parent_id')
+    _allss_parent_id_4 = fields.Many2one(related='_allss_parent_id_3.parent_id')
+    _allss_parent_id_5 = fields.Many2one(related='_allss_parent_id_4.parent_id')
+    _allss_parent_id_6 = fields.Many2one(related='_allss_parent_id_5.parent_id')
+
+    # _allss_group_id = fields.Many2one(related='account_id.group_id', store=True, index=True)
+    # _allss_parent_id_3 = fields.Many2one(related='_allss_group_id.parent_id', store=True, index=True)
+    # _allss_parent_id_4 = fields.Many2one(related='_allss_parent_id_3.parent_id', store=True, index=True)
+    # _allss_parent_id_5 = fields.Many2one(related='_allss_parent_id_4.parent_id', store=True, index=True)
+    # _allss_parent_id_6 = fields.Many2one(related='_allss_parent_id_5.parent_id', store=True, index=True)
 
 
     # FUNÇÃO PARA O CALCULO GERAL DOS SALDOS
+     
     def calculation_balances_general_struc(self):
         result = self.env['allss.balance.account.structure'].search([], order='allss_company_id,'
                                                                               'allss_account_id, '
@@ -259,11 +268,11 @@ class AccountMoveStructure(models.Model):
                     'allss_date': move_line.date,
                     'allss_debit': move_line.debit,
                     'allss_credit': move_line.credit,
-                    'allss_group_id': move_line.allss_group_id.id,
-                    'allss_parent_id_3': move_line.allss_parent_id_3.id,
-                    'allss_parent_id_4': move_line.allss_parent_id_4.id,
-                    'allss_parent_id_5': move_line.allss_parent_id_5.id,
-                    'allss_parent_id_6': move_line.allss_parent_id_6.id,
+                    'allss_group_id': move_line._allss_group_id.id,
+                    'allss_parent_id_3': move_line._allss_parent_id_3.id,
+                    'allss_parent_id_4': move_line._allss_parent_id_4.id,
+                    'allss_parent_id_5': move_line._allss_parent_id_5.id,
+                    'allss_parent_id_6': move_line._allss_parent_id_6.id,
                 }
 
                 _logger.warning(f"DATA {data}")
@@ -301,11 +310,11 @@ class AccountMoveStructure(models.Model):
                     'allss_date': move_line.date,
                     'allss_debit': -move_line.debit,
                     'allss_credit': -move_line.credit,
-                    'allss_group_id': move_line.allss_group_id.id,
-                    'allss_parent_id_3': move_line.allss_parent_id_3.id,
-                    'allss_parent_id_4': move_line.allss_parent_id_4.id,
-                    'allss_parent_id_5': move_line.allss_parent_id_5.id,
-                    'allss_parent_id_6': move_line.allss_parent_id_6.id,
+                    'allss_group_id': move_line._allss_group_id.id,
+                    'allss_parent_id_3': move_line._allss_parent_id_3.id,
+                    'allss_parent_id_4': move_line._allss_parent_id_4.id,
+                    'allss_parent_id_5': move_line._allss_parent_id_5.id,
+                    'allss_parent_id_6': move_line._allss_parent_id_6.id,
                 }
 
                 # SE A PESQUISA GERAR RESULTADO ATUALIZA O CADASTRO

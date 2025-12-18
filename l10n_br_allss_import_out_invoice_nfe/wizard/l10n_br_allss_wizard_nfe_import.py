@@ -7,13 +7,26 @@ from odoo import models, fields
 
 class L10nBrAlssWizardNfeImport(models.TransientModel):
     _inherit = 'l10n.br.allss.wizard.nfe.import'
-    
-    l10n_br_allss_group_id = fields.Many2one('account.group', 'Grupo Contábil', required=False)
 
+    def default_l10n_br_allss_picking_type_id(self):
+        l10n_br_allss_picking_type_id = self.env['stock.picking.type'].sudo().with_company(self.company_id).search([
+            ('code', '=', 'outgoing'),
+            ('company_id', 'in', [self.company_id.id, False])
+        ], limit=1)
+        return l10n_br_allss_picking_type_id.id if l10n_br_allss_picking_type_id else None
+
+    l10n_br_allss_group_id = fields.Many2one('account.group', 'Grupo Contábil', required=False)
+    l10n_br_allss_picking_type_id = fields.Many2one('stock.picking.type', 
+                                                    string='Tipo de Operação'
+                                                    # default=default_l10n_br_allss_picking_type_id,
+                                                    # domain="[('company_id', '=', company_id)]"
+                                                    )
 
     def _l10n_br_allss_import_xml(self, auto, xml):
         nfe = objectify.fromstring(xml)
-        obj_account_move = self.env['account.move'].sudo().with_context(l10n_br_allss_group_id=self.l10n_br_allss_group_id).sudo()
+        obj_account_move = self.env['account.move'].sudo().with_context(l10n_br_allss_group_id=self.l10n_br_allss_group_id,
+                                                                        l10n_br_allss_picking_type_id=self.l10n_br_allss_picking_type_id
+                                                                        ).sudo()
         company_id = self.env.company.sudo()
 
         obj_account_move.import_nfe(

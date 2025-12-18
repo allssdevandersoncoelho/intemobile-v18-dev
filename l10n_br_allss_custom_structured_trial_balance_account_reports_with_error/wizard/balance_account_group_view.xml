@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="allss_account_group_view" model="ir.ui.view">
+            <field name="name">allss.account.group.view</field>
+            <field name="model">allss.account.group</field>
+            <field name="arch" type="xml">
+                <form>
+                    <group col="2">
+                        <group>
+                            <field name="allss_date_de"/>
+                        </group>
+                        <group>
+                            <field name="allss_date_ate"/>
+                        </group>
+
+                    </group>
+                    <group>
+                        <field name="allss_account_bridge_id"  options="{'no_open': True, 'no_create_edit': True, 'no_create': True}"/>
+                        <!-- <field name="allss_account_id" widget="many2many_checkboxes"/> -->
+                        <field name="allss_account_id" widget="many2one_tags"/>
+                    </group>
+                    <footer>
+                        <button special="cancel" string="Cancelar" class="oe_right" />
+                        <button name="action_accept" string="Accept" class="oe_highlight" type="object"/>
+                    </footer>
+                </form>
+            </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="allss_view_balance_account_group">
+            <field name="name">Contas Contábeis para Apuração</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">allss.account.group</field>
+            <field name="view_id" ref="allss_account_group_view"/>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+    </record>
+
+    <!-- <menuitem
+        id="menu_account_group"
+        name="Contas Contábeis para Apuração"
+        parent="account_reports.account_reports_audit_reports_menu"
+        action="allss_view_balance_account_group"
+        sequence="50"
+    /> -->
+
+</odoo>
