@@ -236,10 +236,8 @@ class BalanceAccountAnalytic(models.Model):
     def execute_sql(self):
         cr = self._cr
 
-        # Limpa todas as linhas antes
         cr.execute("DELETE FROM allss_balance_account_analytic;")
 
-        # Conta analítica padrão
         account_analytic_id, analytic_plan_id = account_analytic_def(self)
         account_analytic_id_sql = str(account_analytic_id) if account_analytic_id else 'NULL'
 
@@ -281,10 +279,7 @@ class BalanceAccountAnalytic(models.Model):
             SELECT
                 g.*,
                 SUM(g.debit - g.credit) OVER (
-                    PARTITION BY
-                        g.company_id,
-                        g.account_id,
-                        g.analytic_account_id
+                    PARTITION BY g.company_id, g.account_id, g.analytic_account_id
                     ORDER BY g.date
                 ) AS final_balance
             FROM aml_grouped g
@@ -297,11 +292,11 @@ class BalanceAccountAnalytic(models.Model):
                     PARTITION BY company_id, account_id, analytic_account_id
                     ORDER BY date
                 ) AS previous_balance,
-                acc.group_id AS allss_group_id,
-                g3.parent_id AS allss_parent_id_3,
-                g4.parent_id AS allss_parent_id_4,
-                g5.parent_id AS allss_parent_id_5,
-                g6.parent_id AS allss_parent_id_6,
+                acc.parent_id AS allss_parent_id_6,
+                acc2.parent_id AS allss_parent_id_5,
+                acc3.parent_id AS allss_parent_id_4,
+                acc4.parent_id AS allss_parent_id_3,
+                acc5.parent_id AS allss_group_id,
                 (
                     SELECT plan_id
                     FROM account_analytic_account x
@@ -309,10 +304,10 @@ class BalanceAccountAnalytic(models.Model):
                 ) AS analytic_plan_id
             FROM aml_balance b
             JOIN account_account acc ON acc.id = b.account_id
-            LEFT JOIN account_group g3 ON g3.id = acc.group_id
-            LEFT JOIN account_group g4 ON g4.id = g3.parent_id
-            LEFT JOIN account_group g5 ON g5.id = g4.parent_id
-            LEFT JOIN account_group g6 ON g6.id = g5.parent_id
+            LEFT JOIN account_account acc2 ON acc2.id = acc.parent_id
+            LEFT JOIN account_account acc3 ON acc3.id = acc2.parent_id
+            LEFT JOIN account_account acc4 ON acc4.id = acc3.parent_id
+            LEFT JOIN account_account acc5 ON acc5.id = acc4.parent_id
         )
 
         INSERT INTO allss_balance_account_analytic (
