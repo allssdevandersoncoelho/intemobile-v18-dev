@@ -425,12 +425,12 @@ class AllssAccountMoveNfeImport(models.Model):
 
         _logger.warning(f"+++Contexto import_nfe:  {self.env.context}")
 
-        if account_move_dict is None:
-            account_move_dict = {}
+        # if account_move_dict is None:
+        #     account_move_dict = {}
 
-        journal = self.env.context.get('l10n_br_allss_journal_id')
-        if journal and not account_move_dict.get('journal_id'):
-            account_move_dict['journal_id'] = journal.id
+        # journal = self.env.context.get('l10n_br_allss_journal_id')
+        # if journal and not account_move_dict.get('journal_id'):
+        #     account_move_dict['journal_id'] = journal.id
 
 
         return super().import_nfe(
