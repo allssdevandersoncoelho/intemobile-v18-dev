@@ -369,39 +369,13 @@ class AllssAccountMoveNfeImport(models.Model):
 
 
     def _allss_get_account_receivable(self, partner_name):
-        """
-        Método responsável por criar/encontrar a conta contábil de acordo com o nome do parceiro e
-        grupo contábil fornecido por contexto
-        :param partner_name: nome do parceiro
-        :type partner_name: str
-        :return: nova instância do objeto 'account.account'
-        :rtype: object
-        """
-        _logger.warning(f">> CHEGOU _allss_get_account_receivable ")
-        _logger.warning(f"Contexto _allss_get_account_receivable:{self.env.context}")
-        obj_account_account = self.env.get('account.account')
-        code = self._allss_get_next_code()
-        group_id = self.env.context.get('l10n_br_allss_group_id').id
-        account_ids = obj_account_account.search(
-            [('name', 'ilike', partner_name), ('group_id', '=', group_id)])
-        partner_ids = self.env.get('res.partner').search(
-            [('property_account_receivable_id', 'in', account_ids.ids)])
-        account_id = obj_account_account
-        if not partner_ids and account_ids:
-            account_id = account_ids[0]
-        elif partner_ids and account_ids:
-            account_id = account_ids.filtered(
-                lambda a: a.id not in partner_ids.mapped('property_account_receivable_id').ids)
-            if account_id:
-                account_id = account_id[0]
-        if not account_id:
-            account_id = obj_account_account.sudo().create({
-                'name': partner_name,
-                'code': code,
-                'group_id': group_id,
-                'account_type': "asset_receivable",
-                'reconcile': True,
-            })
+
+        res = super()._allss_get_account_receivable(partner_name)
+
+        wizard_account =  self.env.context.get('l10n_br_allss_account_account_id')
+        _logger.warning(f"WIZARD ACCOUNT ====  {wizard_account}")
+        if wizard_account:    
+            account_id = wizard_account
         return account_id.id
 
     def _create_partner(self, tag_nfe, destinatary):
@@ -449,3 +423,4 @@ class AllssAccountMoveNfeImport(models.Model):
             })
 
         return move
+    
