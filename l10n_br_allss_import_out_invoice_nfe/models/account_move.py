@@ -372,11 +372,13 @@ class AllssAccountMoveNfeImport(models.Model):
 
         res = super()._allss_get_account_receivable(partner_name)
 
-        wizard_account =  self.env.context.get('l10n_br_allss_account_account_id')
-        _logger.warning(f"WIZARD ACCOUNT ====  {wizard_account}")
-        if wizard_account:    
-            account_id = wizard_account
-        return account_id.id
+        wizard_account = self.env.context.get('l10n_br_allss_account_account_id')
+        _logger.warning(f"WIZARD ACCOUNT ==== {wizard_account}")
+
+        if wizard_account:
+            return wizard_account.id
+
+        return res
 
     def _create_partner(self, tag_nfe, destinatary):
         res = super()._create_partner(tag_nfe, destinatary)
