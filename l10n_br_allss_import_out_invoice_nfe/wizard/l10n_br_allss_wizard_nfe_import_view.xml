@@ -10,6 +10,9 @@
                     <field name="l10n_br_allss_import_batch_zip"/>
                     <field name="l10n_br_allss_group_id" required="1"/>
                     <field name="l10n_br_allss_picking_type_id" required="1"/>
+                    <field name="l10n_br_allss_journal_id"/>
+                    <field name="l10n_br_allss_account_analytic_id"/>
+                    <field name="l10n_br_allss_account_account_id"/>
                     <field name="l10n_br_allss_nfe_xml" invisible="l10n_br_allss_import_batch_zip == True"/>
                     <field name="l10n_br_allss_skip_wrong_xml" invisible="l10n_br_allss_import_batch_zip == False"/>
                     <field name="l10n_br_allss_zip_file" invisible="l10n_br_allss_import_batch_zip == False"/>
@@ -34,7 +37,7 @@
     </record>
 
 
-     <record model="ir.ui.view" id="view_inherit_l10n_br_allss_wizard_import_form">
+     <!-- <record model="ir.ui.view" id="view_inherit_l10n_br_allss_wizard_import_form">
         <field name="name">ALLSS Importação de NFe - Intemobile</field>
         <field name="model">l10n.br.allss.wizard.nfe.import</field>
         <field name="inherit_id" ref="l10n_br_allss_nfe_import.view_l10n_br_allss_wizard_nfe_import_form"/>
@@ -47,7 +50,7 @@
                 <field name="l10n_br_allss_account_account_id"/>
             </xpath>
         </field>
-    </record>
+    </record> -->
 
 
 
