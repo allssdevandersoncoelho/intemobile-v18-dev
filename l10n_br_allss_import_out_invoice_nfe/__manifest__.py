@@ -25,9 +25,13 @@
     'data': [
         #views
         'views/account_move.xml',
+        'views/l10n_br_allss_codigo_marketplace.xml',
 
         #wizard
         'wizard/l10n_br_allss_wizard_nfe_import_view.xml',
+
+        #security
+        'security/ir.model.access.csv',
     ],
     'installable': True,
     'auto_install': False,
