@@ -21,11 +21,21 @@ class L10nBrAlssWizardNfeImport(models.TransientModel):
                                                     # default=default_l10n_br_allss_picking_type_id,
                                                     # domain="[('company_id', '=', company_id)]"
                                                     )
+    
+    l10n_br_allss_journal_id = fields.Many2one('account.journal', 'Diário')
+    l10n_br_allss_account_analytic_id = fields.Many2one('account.analytic.account', 'Conta Analítica')
+    l10n_br_allss_account_account_id = fields.Many2one('account.account', 'Conta Contábil (Fatura)', required=True)
+
+
+
 
     def _l10n_br_allss_import_xml(self, auto, xml):
         nfe = objectify.fromstring(xml)
         obj_account_move = self.env['account.move'].sudo().with_context(l10n_br_allss_group_id=self.l10n_br_allss_group_id,
-                                                                        l10n_br_allss_picking_type_id=self.l10n_br_allss_picking_type_id
+                                                                        l10n_br_allss_picking_type_id=self.l10n_br_allss_picking_type_id,
+                                                                        l10n_br_allss_journal_id=self.l10n_br_allss_journal_id,
+                                                                        l10n_br_allss_account_analytic_id=self.l10n_br_allss_account_analytic_id,
+                                                                        l10n_br_allss_account_account_id=self.l10n_br_allss_account_account_id
                                                                         ).sudo()
         company_id = self.env.company.sudo()
 

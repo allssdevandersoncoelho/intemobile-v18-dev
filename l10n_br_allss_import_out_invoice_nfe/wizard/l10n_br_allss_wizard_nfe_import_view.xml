@@ -33,6 +33,24 @@
         </field>
     </record>
 
+
+     <record model="ir.ui.view" id="view_inherit_l10n_br_allss_wizard_import_form">
+        <field name="name">ALLSS Importação de NFe - Intemobile</field>
+        <field name="model">l10n.br.allss.wizard.nfe.import</field>
+        <field name="inherit_id" ref="l10n_br_allss_nfe_import.view_l10n_br_allss_wizard_nfe_import_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[1]" position="inside">
+                <field name="l10n_br_allss_picking_type_id"/>
+                <field name="l10n_br_allss_journal_id"/>
+                <field name="l10n_br_allss_account_analytic_id"/>
+                <field name="l10n_br_allss_account_account_id"/>
+            </xpath>
+        </field>
+    </record>
+
+
+
+
     <record id="action_l10n_br_allss_wizard_nfe_out_invoice_import" model="ir.actions.act_window">
         <field name="name">Importação de XML da NFe - Vendas</field>
         <field name="res_model">l10n.br.allss.wizard.nfe.import</field>
@@ -45,4 +63,8 @@
     <menuitem id="menu_l10n_br_allss_wizard_nfe_out_invoice_import" name="Importar NF-e (XML) - Vendas"
               parent="l10n_br_allss_nfe_import.menu_l10n_br_allss_nfe_automation" action="action_l10n_br_allss_wizard_nfe_out_invoice_import"
               sequence="10" />
+
+
+
+
 </odoo>
