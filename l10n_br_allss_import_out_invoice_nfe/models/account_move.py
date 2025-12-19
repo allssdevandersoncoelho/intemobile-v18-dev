@@ -474,7 +474,10 @@ class AllssAccountMoveNfeImport(models.Model):
                                                    raise_if_not_found=False)
         _logger.warning(f'=============fiscal_position_out_invoice: {fiscal_position_out_invoice}')
         
-        account_move_line['fiscal_position_id'] = fiscal_position_out_invoice.id if fiscal_position_out_invoice else fiscal_position_id
+        # account_move_line['l10n_br_allss_fiscal_position_id'] = fiscal_position_out_invoice.id if fiscal_position_out_invoice else fiscal_position_id
+        account_move_line.update({
+            'l10n_br_allss_fiscal_position_id': fiscal_position_out_invoice.id if fiscal_position_out_invoice else fiscal_position_id
+        })
 
         
 
