@@ -9,7 +9,7 @@
             <field name="l10n_br_allss_fiscal_type">saida</field>
             <field name="l10n_br_allss_operation_id"
                    ref="l10n_br_allss_account_tax.l10n_br_allss_fiscal_operation_venda"/>
-
+            <field name="auto_apply">False</field>
         </record>
 
     </data>
