@@ -356,15 +356,25 @@ class AllssAccountMoveNfeImport(models.Model):
         _logger.warning(f"Contexto atual:{self.env.context}")
 
         code_prefix = self.env.context.get('l10n_br_allss_group_id').code_prefix_start
+        _logger.warning(f">> NEXT_CODE > code_prefix: {code_prefix}")
         if not code_prefix.endswith('.'):
             code_prefix += '.'
+
+        _logger.warning(f">> NEXT_CODE > code_prefix depois od if: {code_prefix}")
+
         obj_account_account = self.env.get('account.account')
+        _logger.warning(f">> NEXT_CODE > obj_account_account: {obj_account_account}")
+
         account_id = obj_account_account.search(
             [('code', 'like', ('%s%%' % code_prefix))], order='code desc', limit=1)
+        
+        _logger.warning(f">> NEXT_CODE > account_id: {account_id}")
         if not account_id:
+            _logger.warning(f">> NEXT_CODE > dentro do if not account: code_prefix + '1'.zfill(6): {code_prefix + '1'.zfill(6)}")
             return code_prefix + '1'.zfill(6)
         next_code = int(account_id.code.split('.')[-1])
         next_code += 1
+        _logger.warning(f">> NEXT_CODE > next_code retornado: {code_prefix + str(next_code).zfill(6)}")
         return code_prefix + str(next_code).zfill(6)
 
 
