@@ -521,7 +521,7 @@ class BalanceAccountAnalytic(models.Model):
 
                 allss_company_id,
 
-                allss_analytic_id,
+                allss_account_analytic_id,
                 allss_parent_id_1,
                 allss_parent_id_2,
                 allss_parent_id_3,
@@ -541,11 +541,11 @@ class BalanceAccountAnalytic(models.Model):
 
                 f.company_id,
 
-                a0.id                         AS allss_analytic_id,
-                a1.id                         AS allss_parent_id_1,
-                a2.id                         AS allss_parent_id_2,
-                a3.id                         AS allss_parent_id_3,
-                a4.id                         AS allss_parent_id_4,
+                a0.id AS allss_account_analytic_id,
+                a1.id AS allss_parent_id_1,
+                a2.id AS allss_parent_id_2,
+                a3.id AS allss_parent_id_3,
+                a4.id AS allss_parent_id_4,
 
                 f.date,
 
@@ -555,7 +555,7 @@ class BalanceAccountAnalytic(models.Model):
                         ORDER BY f.date
                     ),
                     0
-                )                              AS allss_previous_balance,
+                ) AS allss_previous_balance,
 
                 f.debit,
                 f.credit,
@@ -569,13 +569,13 @@ class BalanceAccountAnalytic(models.Model):
                     aml.company_id,
                     aml.analytic_account_id,
                     DATE_TRUNC('month', aml.date)::date AS date,
-                    SUM(aml.debit)                       AS debit,
-                    SUM(aml.credit)                      AS credit,
+                    SUM(aml.debit)  AS debit,
+                    SUM(aml.credit) AS credit,
                     SUM(SUM(aml.debit - aml.credit))
                         OVER (
                             PARTITION BY aml.company_id, aml.analytic_account_id
                             ORDER BY DATE_TRUNC('month', aml.date)
-                        )                                AS final_balance
+                        ) AS final_balance
                 FROM account_move_line aml
                 JOIN account_move am ON am.id = aml.move_id
                 WHERE
