@@ -478,6 +478,7 @@ class AllssAccountMoveNfeImport(models.Model):
                 )
 
             if marketplace_products:
+                _logger.warning(f'FOUND marketplace_products: {marketplace_products}')
                 product = marketplace_products[0]
 
                 _logger.warning(
