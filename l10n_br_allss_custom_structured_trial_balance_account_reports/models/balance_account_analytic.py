@@ -510,10 +510,9 @@ class BalanceAccountAnalytic(models.Model):
     def execute_sql(self):
         cr = self._cr
 
-        # 1) Limpa tabela
+        # Limpa a tabela analítica
         cr.execute("DELETE FROM allss_balance_account_analytic;")
 
-        # 2) Conta analítica padrão
         account_analytic_id, analytic_plan_id = account_analytic_def(self)
         account_analytic_id_sql = str(account_analytic_id) if account_analytic_id else 'NULL'
 
@@ -545,21 +544,14 @@ class BalanceAccountAnalytic(models.Model):
                 SUM(debit) AS debit,
                 SUM(credit) AS credit
             FROM aml_expanded
-            GROUP BY
-                company_id,
-                account_id,
-                analytic_account_id,
-                date
+            GROUP BY company_id, account_id, analytic_account_id, date
         ),
 
         aml_balance AS (
             SELECT
                 g.*,
                 SUM(g.debit - g.credit) OVER (
-                    PARTITION BY
-                        g.company_id,
-                        g.account_id,
-                        g.analytic_account_id
+                    PARTITION BY g.company_id, g.account_id, g.analytic_account_id
                     ORDER BY g.date
                 ) AS final_balance
             FROM aml_grouped g
@@ -569,78 +561,47 @@ class BalanceAccountAnalytic(models.Model):
             SELECT
                 *,
                 LAG(final_balance, 1, 0) OVER (
-                    PARTITION BY
-                        company_id,
-                        account_id,
-                        analytic_account_id
+                    PARTITION BY company_id, account_id, analytic_account_id
                     ORDER BY date
                 ) AS previous_balance
             FROM aml_balance
         )
 
-        INSERT INTO allss_balance_account_analytic (
-            id,
-            create_uid,
-            create_date,
-            write_uid,
-            write_date,
-            allss_company_id,
-            allss_parent_id_6,
-            allss_parent_id_5,
-            allss_parent_id_4,
-            allss_parent_id_3,
-            allss_group_id,
-            allss_account_id,
-            allss_account_analytic_id,
-            allss_analytic_plan_id,
-            allss_date,
-            allss_previous_balance,
-            allss_debit,
-            allss_credit,
-            allss_final_balance
+        INSERT INTO allss_balance_account_analytic(
+            id, create_uid, create_date, write_uid, write_date,
+            allss_company_id, allss_account_id, allss_account_analytic_id, allss_analytic_plan_id,
+            allss_date, allss_previous_balance, allss_debit, allss_credit, allss_final_balance,
+            allss_group_id, allss_parent_id_3, allss_parent_id_4, allss_parent_id_5, allss_parent_id_6
         )
         SELECT
             row_number() OVER () AS id,
-            1,
-            CURRENT_DATE,
-            1,
-            CURRENT_DATE,
+            1, CURRENT_DATE, 1, CURRENT_DATE,
             f.company_id,
-
-            g4.id AS allss_parent_id_6,
-            g3.id AS allss_parent_id_5,
-            g2.id AS allss_parent_id_4,
-            g1.id AS allss_parent_id_3,
-            g0.id AS allss_group_id,
-
             f.account_id,
-            f.analytic_account_id AS allss_account_analytic_id,
-            aa.plan_id AS allss_analytic_plan_id,
+            f.analytic_account_id,
+            {analytic_plan_id or 'NULL'} AS allss_analytic_plan_id,
             f.date,
             f.previous_balance,
             f.debit,
             f.credit,
-            f.final_balance
-
+            f.final_balance,
+            g0.id AS allss_group_id,
+            g1.id AS allss_parent_id_3,
+            g2.id AS allss_parent_id_4,
+            g3.id AS allss_parent_id_5,
+            g4.id AS allss_parent_id_6
         FROM aml_final f
-
-        JOIN account_account acc
-            ON acc.id = f.account_id
-
+        LEFT JOIN account_account acc ON acc.id = f.account_id
         LEFT JOIN account_group g0 ON g0.id = acc.group_id
         LEFT JOIN account_group g1 ON g1.id = g0.parent_id
         LEFT JOIN account_group g2 ON g2.id = g1.parent_id
         LEFT JOIN account_group g3 ON g3.id = g2.parent_id
-        LEFT JOIN account_group g4 ON g4.id = g3.parent_id
-
-        LEFT JOIN account_analytic_account aa
-            ON aa.id = f.analytic_account_id
-        ;
+        LEFT JOIN account_group g4 ON g4.id = g3.parent_id;
         """
 
         cr.execute(sql)
 
-        # 3) Ajusta sequência
+        # Atualiza sequência
         cr.execute("""
             SELECT setval(
                 'allss_balance_account_analytic_id_seq',
@@ -648,8 +609,6 @@ class BalanceAccountAnalytic(models.Model):
                 false
             );
         """)
-
-
 
 
 
