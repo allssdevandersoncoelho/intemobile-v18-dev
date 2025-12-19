@@ -1,7 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
 
-<record id="l10n_br_allss_xml_import_out_invoice_fiscal_position" model="account.fiscal.position">
-  <field name="name">Importação de XML (Vendas)</field>
-  <field name="l10n_br_allss_fiscal_type">saida</field>
-  <field name="l10n_br_allss_operation_id" ref="l10n_br_allss_account_tax.l10n_br_allss_fiscal_operation_venda"/>
-  <field name="l10n_br_allss_operation_description">Importação de XML (Vendas)</field>
-</record>
+        <record id="l10n_br_allss_xml_import_out_invoice_fiscal_position"
+                model="account.fiscal.position">
+            <field name="name">Importação de XML (Vendas)</field>
+            <field name="l10n_br_allss_operation_description">Importação de XML (Vendas)</field>
+            <field name="l10n_br_allss_fiscal_type">saida</field>
+            <field name="l10n_br_allss_operation_id"
+                   ref="l10n_br_allss_account_tax.l10n_br_allss_fiscal_operation_venda"/>
+
+        </record>
+
+    </data>
+</odoo>
