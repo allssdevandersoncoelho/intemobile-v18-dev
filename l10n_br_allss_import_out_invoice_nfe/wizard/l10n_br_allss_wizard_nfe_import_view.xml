@@ -15,7 +15,7 @@
                     <field name="l10n_br_allss_account_analytic_id"/>
                     <field name="l10n_br_allss_picking_type_id" />
                     <field name="l10n_br_allss_group_id" required="1"/>
-                    <field name="l10n_br_allss_account_account_id"/>
+                    <field name="l10n_br_allss_account_account_id" required="1"/>
                 </group>
                 <group invisible="state != 'error'">
                     <div>

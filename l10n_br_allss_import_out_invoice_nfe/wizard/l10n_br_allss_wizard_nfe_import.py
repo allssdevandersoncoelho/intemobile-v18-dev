@@ -26,7 +26,7 @@ class L10nBrAlssWizardNfeImport(models.TransientModel):
         ], limit=1)
         return l10n_br_allss_picking_type_id.id if l10n_br_allss_picking_type_id else None
 
-    l10n_br_allss_group_id = fields.Many2one('account.group', 'Grupo Contábil', required=False)
+    l10n_br_allss_group_id = fields.Many2one('account.group', 'Grupo Contábil')
     l10n_br_allss_picking_type_id = fields.Many2one('stock.picking.type', 
                                                     string='Tipo de Operação'
                                                     # default=default_l10n_br_allss_picking_type_id,
@@ -35,7 +35,7 @@ class L10nBrAlssWizardNfeImport(models.TransientModel):
     
     l10n_br_allss_journal_id = fields.Many2one('account.journal', 'Diário')
     l10n_br_allss_account_analytic_id = fields.Many2one('account.analytic.account', 'Conta Analítica')
-    l10n_br_allss_account_account_id = fields.Many2one('account.account', 'Conta Contábil (Fatura)', required=True)
+    l10n_br_allss_account_account_id = fields.Many2one('account.account', 'Conta Contábil (Fatura)')
 
 
 
