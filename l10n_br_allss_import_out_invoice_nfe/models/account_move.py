@@ -387,6 +387,15 @@ class AllssAccountMoveNfeImport(models.Model):
         """
         _logger.warning(f">> CHEGOU _allss_get_account_receivable ")
         _logger.warning(f"Contexto _allss_get_account_receivable:{self.env.context}")
+
+        #
+        wizard_account = self.env.context.get('l10n_br_allss_account_account_id')
+        _logger.warning(f"WIZARD ACCOUNT ==== {wizard_account}")
+
+        if wizard_account:
+            return wizard_account.id
+        #
+
         obj_account_account = self.env.get('account.account')
         code = self._allss_get_next_code()
         group_id = self.env.context.get('l10n_br_allss_group_id')
@@ -414,13 +423,6 @@ class AllssAccountMoveNfeImport(models.Model):
                 'reconcile': True,
             })
 
-        #
-        wizard_account = self.env.context.get('l10n_br_allss_account_account_id')
-        _logger.warning(f"WIZARD ACCOUNT ==== {wizard_account}")
-
-        if wizard_account:
-            return wizard_account.id
-        #
         
         return account_id.id
 
