@@ -364,7 +364,7 @@ class AllssAccountMoveNfeImport(models.Model):
 
         obj_account_account = self.env.get('account.account')
         account_id = obj_account_account.search(
-            [('code', 'like', ('%s%%' % code_prefix))], order='code desc', limit=1)
+            [('code', '=1like', (code_prefix+'%'))], order='code desc', limit=1)
         
         _logger.warning(f">> NEXT_CODE > account_id: {account_id}")
         if not account_id:
@@ -389,19 +389,11 @@ class AllssAccountMoveNfeImport(models.Model):
         _logger.warning(f"Contexto _allss_get_account_receivable:{self.env.context}")
         obj_account_account = self.env.get('account.account')
         code = self._allss_get_next_code()
-        group_id = self.env.context.get('l10n_br_allss_group_id').id
+        group_id = self.env.context.get('l10n_br_allss_group_id')
         account_ids = obj_account_account.search(
-            [('name', 'ilike', partner_name), ('group_id', '=', group_id)])
+            [('name', 'ilike', partner_name), ('code', '=ilike', group_id.code_prefix_start+'%')])
         
         _logger.warning(f">>>> account_ids encontrados: {account_ids}")
-
-        #
-        wizard_account = self.env.context.get('l10n_br_allss_account_account_id')
-        _logger.warning(f"WIZARD ACCOUNT ==== {wizard_account}")
-
-        if wizard_account:
-            return wizard_account.id
-        #
 
         partner_ids = self.env.get('res.partner').search(
             [('property_account_receivable_id', 'in', account_ids.ids)])
@@ -417,12 +409,18 @@ class AllssAccountMoveNfeImport(models.Model):
             account_id = obj_account_account.sudo().create({
                 'name': partner_name,
                 'code': code,
-                'group_id': group_id,
+                'group_id': group_id.id,
                 'account_type': "asset_receivable",
                 'reconcile': True,
             })
 
-        
+        #
+        wizard_account = self.env.context.get('l10n_br_allss_account_account_id')
+        _logger.warning(f"WIZARD ACCOUNT ==== {wizard_account}")
+
+        if wizard_account:
+            return wizard_account.id
+        #
         
         return account_id.id
 
