@@ -363,8 +363,6 @@ class AllssAccountMoveNfeImport(models.Model):
         _logger.warning(f">> NEXT_CODE > code_prefix depois od if: {code_prefix}")
 
         obj_account_account = self.env.get('account.account')
-        _logger.warning(f">> NEXT_CODE > obj_account_account: {obj_account_account}")
-
         account_id = obj_account_account.search(
             [('code', 'like', ('%s%%' % code_prefix))], order='code desc', limit=1)
         
@@ -397,6 +395,14 @@ class AllssAccountMoveNfeImport(models.Model):
         
         _logger.warning(f">>>> account_ids encontrados: {account_ids}")
 
+        #
+        wizard_account = self.env.context.get('l10n_br_allss_account_account_id')
+        _logger.warning(f"WIZARD ACCOUNT ==== {wizard_account}")
+
+        if wizard_account:
+            return wizard_account.id
+        #
+
         partner_ids = self.env.get('res.partner').search(
             [('property_account_receivable_id', 'in', account_ids.ids)])
         account_id = obj_account_account
@@ -416,13 +422,7 @@ class AllssAccountMoveNfeImport(models.Model):
                 'reconcile': True,
             })
 
-        #
-        wizard_account = self.env.context.get('l10n_br_allss_account_account_id')
-        _logger.warning(f"WIZARD ACCOUNT ==== {wizard_account}")
-
-        if wizard_account:
-            return wizard_account.id
-        #
+        
         
         return account_id.id
 
