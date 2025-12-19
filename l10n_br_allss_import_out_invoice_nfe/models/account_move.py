@@ -458,6 +458,7 @@ class AllssAccountMoveNfeImport(models.Model):
 
         account_move_line, operation = result
 
+        _logger.warning(f'=============account_move_dict: {account_move_dict}')
         _logger.warning(f'=============operation: {operation}')
         _logger.warning(f'=============account_move_line antes da modificação: {account_move_line}')
 
@@ -498,9 +499,11 @@ class AllssAccountMoveNfeImport(models.Model):
 
         # Atualiza a operação da Fatura para 'Vendas'
         operation_from_import = self.env['l10n.br.allss.fiscal.operation'].search([('name', '=', 'Venda')], limit=1)
-        _logger.warning(f'=============operation_from_import: {operation_from_import.name}')
-
         operation = operation_from_import if operation_from_import else operation
+
+
+        # Atualiza a condição de pagamento da Fatura
+        # payment_term_id = self.env['account.payment.term'].search([('name', 'ilike', '15 dias')], limit=1)
 
         return [account_move_line, operation]
 
