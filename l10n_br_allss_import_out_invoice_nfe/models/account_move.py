@@ -501,34 +501,41 @@ class AllssAccountMoveNfeImport(models.Model):
         operation_from_import = self.env['l10n.br.allss.fiscal.operation'].search([('name', '=', 'Venda')], limit=1)
         operation = operation_from_import if operation_from_import else operation
 
+        return [account_move_line, operation]
+    
+
+
+    
+
+    def import_nfe(self, auto, company_id, nfe, nfe_xml, dfe, 
+                   partner_automation=False,
+                   account_invoice_automation=False, 
+                   tax_automation=False,
+                   supplierinfo_automation=False, 
+                   fiscal_position_id=False,
+                   payment_term_id=False, 
+                   account_move_dict=None, 
+                   purchase_order_automation=False):
+
+        _logger.warning(f"+++Contexto import_nfe:  {self.env.context}")
+
+        move = super().import_nfe(
+            auto, company_id, nfe, nfe_xml, dfe,
+            partner_automation,
+            account_invoice_automation,
+            tax_automation,
+            supplierinfo_automation,
+            fiscal_position_id,
+            payment_term_id,
+            account_move_dict,
+            purchase_order_automation
+        )
+
 
         # Atualiza a condição de pagamento da Fatura
-        # payment_term_id = self.env['account.payment.term'].search([('name', 'ilike', '15 dias')], limit=1)
+        invoice_payment_term_id = self.env['account.payment.term'].search([('name', 'ilike', '15 dias')], limit=1)
+        move.update({
+            'invoice_payment_term_id': invoice_payment_term_id.id
+        })
 
-        return [account_move_line, operation]
-
-    # def import_nfe(self, auto, company_id, nfe, nfe_xml, dfe, 
-    #                partner_automation=False,
-    #                account_invoice_automation=False, 
-    #                tax_automation=False,
-    #                supplierinfo_automation=False, 
-    #                fiscal_position_id=False,
-    #                payment_term_id=False, 
-    #                account_move_dict=None, 
-    #                purchase_order_automation=False):
-
-    #     _logger.warning(f"+++Contexto import_nfe:  {self.env.context}")
-
-    #     move = super().import_nfe(
-    #         auto, company_id, nfe, nfe_xml, dfe,
-    #         partner_automation,
-    #         account_invoice_automation,
-    #         tax_automation,
-    #         supplierinfo_automation,
-    #         fiscal_position_id,
-    #         payment_term_id,
-    #         account_move_dict,
-    #         purchase_order_automation
-    #     )
-
-    #     return move
+        return move
