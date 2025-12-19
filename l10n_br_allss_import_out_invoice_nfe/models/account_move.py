@@ -452,6 +452,14 @@ class AllssAccountMoveNfeImport(models.Model):
     def create_account_move_line(self, item, company_id, partner_id, supplier_automation,
                                  tax_automation, fiscal_position_id=None, account_move_dict=None):
         
+        fiscal_position_out_invoice = self.env.ref(
+            'l10n_br_allss_import_out_invoice_nfe.l10n_br_allss_xml_import_out_invoice_fiscal_position'
+        )
+
+        fiscal_position_id = fiscal_position_out_invoice.id if fiscal_position_out_invoice else False
+
+
+
 
         result = super().create_account_move_line(item, company_id, partner_id, supplier_automation,
                                  tax_automation, fiscal_position_id=fiscal_position_id, account_move_dict=account_move_dict)
@@ -459,18 +467,21 @@ class AllssAccountMoveNfeImport(models.Model):
         account_move_line, operation = result
 
         _logger.warning(f'=============account_move_dict: {account_move_dict}')
+        _logger.warning(f'=============account_move_dict fiscalposition: {account_move_dict["fiscal_position_id"] if account_move_dict else "N/A"}')
         _logger.warning(f'=============operation: {operation}')
 
         codigo = get(item.prod, 'cProd', str)
 
         # busca CFOP no XML da NFe
-        cfop = get(item.prod, 'CFOP', str)
-        _logger.warning(f'CFOP do item da NFe: {cfop}')
+        # cfop = get(item.prod, 'CFOP', str)
+        # _logger.warning(f'CFOP do item da NFe: {cfop}')
 
-        fiscal_position_out_invoice = self.env.ref('l10n_br_allss_import_out_invoice_nfe.l10n_br_allss_xml_import_out_invoice_fiscal_position',
-                                                   raise_if_not_found=False)
+        # fiscal_position_out_invoice = self.env.ref('l10n_br_allss_import_out_invoice_nfe.l10n_br_allss_xml_import_out_invoice_fiscal_position',
+        #                                            raise_if_not_found=False)
+        
+        # como eu atualizo o fiscal_position_id do account_move_line?
 
-        _logger.warning(f'=============fiscal_position_out_invoice: {fiscal_position_out_invoice}')
+        # _logger.warning(f'=============fiscal_position_out_invoice: {fiscal_position_out_invoice}')
 
 
 
