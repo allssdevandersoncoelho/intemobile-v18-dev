@@ -460,9 +460,17 @@ class AllssAccountMoveNfeImport(models.Model):
 
         _logger.warning(f'=============account_move_dict: {account_move_dict}')
         _logger.warning(f'=============operation: {operation}')
-        _logger.warning(f'=============account_move_line antes da modificação: {account_move_line}')
+        # _logger.warning(f'=============account_move_line antes da modificação: {account_move_line}')
 
         codigo = get(item.prod, 'cProd', str)
+
+        cfpo_xml = get(item.prod, 'CFOP', str)
+        _logger.warning(f'CFOP do item da NFe: {cfpo_xml}')
+
+        fiscal_position_xml = self.env['account.fiscal.position'].search([
+            ('l10n_br_allss_cfop_id.l10n_br_allss_code', '=', cfpo_xml)
+        ], limit=1)
+        _logger.warning(f'=============fiscal_position_xml: {fiscal_position_xml}')
 
 
         # Busca produto pelo código do marketplace (l10n_br_allss_codigo_marketplace)
