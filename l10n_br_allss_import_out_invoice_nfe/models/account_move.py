@@ -429,6 +429,9 @@ class AllssAccountMoveNfeImport(models.Model):
     def _create_partner(self, tag_nfe, destinatary):
         res = super()._create_partner(tag_nfe, destinatary)
 
+        _logger.warning(f">>> ALLSS > tag_nfe: {tag_nfe}")
+        _logger.warning(f">>> ALLSS > CONTEXTO _create_partner: {self.env.context}")
+
         res.sudo().write({
             'property_account_receivable_id': self._allss_get_account_receivable(res.name)})
 
