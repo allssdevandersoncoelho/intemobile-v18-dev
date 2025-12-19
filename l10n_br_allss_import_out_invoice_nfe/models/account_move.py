@@ -497,7 +497,7 @@ class AllssAccountMoveNfeImport(models.Model):
 
 
         # Atualiza a operação da Fatura para 'Vendas'
-        operation_from_import = self.env['l10n.br.allss.fiscal.operation'].search([('name', '=', 'Vendas')], limit=1)
+        operation_from_import = self.env['l10n.br.allss.fiscal.operation'].search([('name', '=', 'Venda')], limit=1)
         _logger.warning(f'=============operation_from_import: {operation_from_import.name}')
 
         operation = operation_from_import if operation_from_import else operation
