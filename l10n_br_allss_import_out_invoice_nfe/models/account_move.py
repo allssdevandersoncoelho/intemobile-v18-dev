@@ -459,7 +459,7 @@ class AllssAccountMoveNfeImport(models.Model):
         account_move_line, operation = result
 
         _logger.warning(f'=============operation: {operation}')
-        _logger.warning(f'=============account_move_line antes da modificação: {account_move_line.move_id.l10n_br_allss_operation_id}')
+        _logger.warning(f'=============account_move_line antes da modificação: {account_move_line}')
 
 
         codigo = get(item.prod, 'cProd', str)
