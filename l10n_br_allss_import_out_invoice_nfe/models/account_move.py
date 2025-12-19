@@ -467,7 +467,8 @@ class AllssAccountMoveNfeImport(models.Model):
         cfop = get(item.prod, 'CFOP', str)
         _logger.warning(f'CFOP do item da NFe: {cfop}')
 
-        fiscal_position_out_invoice = self.env.ref('l10n_br_allss_xml_import_out_invoice_fiscal_position',raise_if_not_found=False)
+        fiscal_position_out_invoice = self.env.ref('l10n_br_allss_import_out_invoice_nfe.l10n_br_allss_xml_import_out_invoice_fiscal_position',
+                                                   raise_if_not_found=False)
 
         _logger.warning(f'=============fiscal_position_out_invoice: {fiscal_position_out_invoice}')
 
