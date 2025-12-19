@@ -364,7 +364,7 @@ class AllssAccountMoveNfeImport(models.Model):
 
         obj_account_account = self.env.get('account.account')
         account_id = obj_account_account.search(
-            [('code', '=1like', (code_prefix+'%'))], order='code desc', limit=1)
+            [('code', 'ilike', (code_prefix+'%'))], order='code desc', limit=1)
         
         _logger.warning(f">> NEXT_CODE > account_id: {account_id}")
         if not account_id:
@@ -391,7 +391,7 @@ class AllssAccountMoveNfeImport(models.Model):
         code = self._allss_get_next_code()
         group_id = self.env.context.get('l10n_br_allss_group_id')
         account_ids = obj_account_account.search(
-            [('name', 'ilike', partner_name), ('code', '=ilike', group_id.code_prefix_start+'%')])
+            [('name', 'ilike', partner_name), ('code', 'ilike', group_id.code_prefix_start+'%')])
         
         _logger.warning(f">>>> account_ids encontrados: {account_ids}")
 
