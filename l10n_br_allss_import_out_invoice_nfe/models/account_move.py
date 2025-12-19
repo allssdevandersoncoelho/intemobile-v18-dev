@@ -389,11 +389,11 @@ class AllssAccountMoveNfeImport(models.Model):
         _logger.warning(f"Contexto _allss_get_account_receivable:{self.env.context}")
 
         #
-        wizard_account = self.env.context.get('l10n_br_allss_account_account_id')
-        _logger.warning(f"WIZARD ACCOUNT ==== {wizard_account}")
+        # wizard_account = self.env.context.get('l10n_br_allss_account_account_id')
+        # _logger.warning(f"WIZARD ACCOUNT ==== {wizard_account}")
 
-        if wizard_account:
-            return wizard_account.id
+        # if wizard_account:
+        #     return wizard_account.id
         #
 
         obj_account_account = self.env.get('account.account')
