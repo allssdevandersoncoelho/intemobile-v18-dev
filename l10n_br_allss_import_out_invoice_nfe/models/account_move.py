@@ -461,8 +461,8 @@ class AllssAccountMoveNfeImport(models.Model):
         _logger.warning(f'=============operation: {operation}')
         _logger.warning(f'=============account_move_line antes da modificação: {account_move_line}')
 
-
         codigo = get(item.prod, 'cProd', str)
+
 
         # Busca produto pelo código do marketplace (l10n_br_allss_codigo_marketplace)
         if codigo:
@@ -494,6 +494,13 @@ class AllssAccountMoveNfeImport(models.Model):
             account_move_line['analytic_distribution'] = {
                 str(analytic.id): 100.0
             }
+
+
+        # Atualiza a operação da Fatura para 'Vendas'
+        operation_from_import = self.env.search('l10n.br.allss.fiscal.operation', [('name', '=', 'Vendas')], limit=1)
+        _logger.warning(f'=============operation_from_import: {operation_from_import.name}')
+
+        operation = operation_from_import if operation_from_import else operation
 
         return [account_move_line, operation]
 
