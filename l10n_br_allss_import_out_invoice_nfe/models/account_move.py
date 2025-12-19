@@ -452,36 +452,27 @@ class AllssAccountMoveNfeImport(models.Model):
     def create_account_move_line(self, item, company_id, partner_id, supplier_automation,
                                  tax_automation, fiscal_position_id=None, account_move_dict=None):
         
-
         result = super().create_account_move_line(item, company_id, partner_id, supplier_automation,
                                  tax_automation, fiscal_position_id=fiscal_position_id, account_move_dict=account_move_dict)
 
         account_move_line, operation = result
 
-        _logger.warning(f'=============account_move_dict: {account_move_dict}')
-        _logger.warning(f'=============operation: {operation}')
+        # _logger.warning(f'=============account_move_dict: {account_move_dict}')
+        # _logger.warning(f'=============operation: {operation}')
 
-        codigo = get(item.prod, 'cProd', str)
 
         
-        # Atualiza a posição fiscal para a de Vendas (out_invoice)
+        # Atualiza a posição fiscal e cfop para a de Vendas (out_invoice)
         fiscal_position_out_invoice = self.env.ref('l10n_br_allss_import_out_invoice_nfe.l10n_br_allss_xml_import_out_invoice_fiscal_position',
                                                    raise_if_not_found=False)
-        
-        cfop_out_invoice = self.env.ref('l10n_br_allss_account_tax.l10n_br_allss_fiscal_cfop_6106')
-
-        
+        cfop_out_invoice = self.env.ref('l10n_br_allss_account_tax.l10n_br_allss_fiscal_cfop_6106')        
         account_move_line.update({
             'l10n_br_allss_fiscal_position_id': fiscal_position_out_invoice.id if fiscal_position_out_invoice else fiscal_position_id,
             'l10n_br_allss_cfop_id': cfop_out_invoice.id if cfop_out_invoice else False,
         })
 
-        
-
-
-
-
         # Busca produto pelo código do marketplace (l10n_br_allss_codigo_marketplace)
+        codigo = get(item.prod, 'cProd', str)   
         if codigo:
             marketplace_products = self.env['product.product'].search([
                 ('l10n_br_allss_codigo_marketplace', '=', codigo)
