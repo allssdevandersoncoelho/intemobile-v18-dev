@@ -23,6 +23,9 @@
         'l10n_br_allss_nfe_import',
     ],
     'data': [
+        #data
+        'data/account.fiscal.position_data.xml',
+        
         #views
         'views/account_move.xml',
         'views/l10n_br_allss_codigo_marketplace.xml',
