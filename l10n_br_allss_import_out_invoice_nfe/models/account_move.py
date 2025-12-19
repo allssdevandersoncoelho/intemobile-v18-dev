@@ -463,20 +463,17 @@ class AllssAccountMoveNfeImport(models.Model):
 
         codigo = get(item.prod, 'cProd', str)
 
-        # busca CFOP no XML da NFe
-        # cfop = get(item.prod, 'CFOP', str)
-        # _logger.warning(f'CFOP do item da NFe: {cfop}')
-
-
-
+        
         # Atualiza a posição fiscal para a de Vendas (out_invoice)
         fiscal_position_out_invoice = self.env.ref('l10n_br_allss_import_out_invoice_nfe.l10n_br_allss_xml_import_out_invoice_fiscal_position',
                                                    raise_if_not_found=False)
-        _logger.warning(f'=============fiscal_position_out_invoice: {fiscal_position_out_invoice}')
         
-        # account_move_line['l10n_br_allss_fiscal_position_id'] = fiscal_position_out_invoice.id if fiscal_position_out_invoice else fiscal_position_id
+        cfop_out_invoice = self.env.ref('l10n_br_allss_account_tax.l10n_br_allss_fiscal_cfop_6106')
+
+        
         account_move_line.update({
-            'l10n_br_allss_fiscal_position_id': fiscal_position_out_invoice.id if fiscal_position_out_invoice else fiscal_position_id
+            'l10n_br_allss_fiscal_position_id': fiscal_position_out_invoice.id if fiscal_position_out_invoice else fiscal_position_id,
+            'l10n_br_allss_cfop_id': cfop_out_invoice.id if cfop_out_invoice else False,
         })
 
         
