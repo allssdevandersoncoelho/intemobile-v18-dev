@@ -8,14 +8,14 @@
                 <field name="state" invisible="1" />
                 <group invisible="state != 'ok'">
                     <field name="l10n_br_allss_import_batch_zip"/>
-                    <field name="l10n_br_allss_group_id"/>
-                    <field name="l10n_br_allss_picking_type_id"/>
-                    <field name="l10n_br_allss_journal_id"/>
-                    <field name="l10n_br_allss_account_analytic_id"/>
-                    <field name="l10n_br_allss_account_account_id"/>
                     <field name="l10n_br_allss_nfe_xml" invisible="l10n_br_allss_import_batch_zip == True"/>
                     <field name="l10n_br_allss_skip_wrong_xml" invisible="l10n_br_allss_import_batch_zip == False"/>
                     <field name="l10n_br_allss_zip_file" invisible="l10n_br_allss_import_batch_zip == False"/>
+                    <field name="l10n_br_allss_journal_id"/>
+                    <field name="l10n_br_allss_account_analytic_id"/>
+                    <field name="l10n_br_allss_picking_type_id" />
+                    <field name="l10n_br_allss_group_id" required="1"/>
+                    <field name="l10n_br_allss_account_account_id"/>
                 </group>
                 <group invisible="state != 'error'">
                     <div>
