@@ -61,7 +61,7 @@
         <field name="view_id" ref="view_l10n_br_allss_wizard_nfe_out_invoice_import_form"/>
         <field name="view_mode">form</field>
         <field name="target">inline</field>
-        <field name="context">{'allss_nfe_import': True}</field>
+        <field name="context">{'allss_nfe_import': True, 'allss_nfe_import_type': 'out_invoice'}</field>
     </record>
 
     <menuitem id="menu_l10n_br_allss_wizard_nfe_out_invoice_import" name="Importar NF-e (XML) - Vendas"

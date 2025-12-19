@@ -348,7 +348,7 @@ class AllssAccountMoveNfeImport(models.Model):
 
 
     
-    def _allss_get_next_code(self):
+    def _allss_get_next_code_out_invoice(self):
         """
         Método resonsável por gerar o próximo código para a conta contábil baseado no dado do
         prefixo do grupo de conta fornecido por contexto
@@ -376,7 +376,7 @@ class AllssAccountMoveNfeImport(models.Model):
         return code_prefix + str(next_code).zfill(6)
 
 
-    def _allss_get_account_receivable(self, partner_name):
+    def _allss_get_account_receivable_out_invoice(self, partner_name):
         """
         Método responsável por criar/encontrar a conta contábil de acordo com o nome do parceiro e
         grupo contábil fornecido por contexto
@@ -397,7 +397,7 @@ class AllssAccountMoveNfeImport(models.Model):
         #
 
         obj_account_account = self.env.get('account.account')
-        code = self._allss_get_next_code()
+        code = self._allss_get_next_code_out_invoice()
         group_id = self.env.context.get('l10n_br_allss_group_id')
         account_ids = obj_account_account.search(
             [('name', 'ilike', partner_name), ('code', 'ilike', group_id.code_prefix_start+'%')])
@@ -432,8 +432,9 @@ class AllssAccountMoveNfeImport(models.Model):
         _logger.warning(f">>> ALLSS > tag_nfe: {tag_nfe}")
         _logger.warning(f">>> ALLSS > CONTEXTO _create_partner: {self.env.context}")
 
-        res.sudo().write({
-            'property_account_receivable_id': self._allss_get_account_receivable(res.name)})
+        if self.env.context.get('allss_nfe_import_type') == 'out_invoice':
+            res.sudo().write({
+                'property_account_receivable_id': self._allss_get_account_receivable_out_invoice(res.name)})
 
         return res
     
