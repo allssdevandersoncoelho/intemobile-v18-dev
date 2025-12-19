@@ -384,6 +384,9 @@ class AllssAccountMoveNfeImport(models.Model):
         group_id = self.env.context.get('l10n_br_allss_group_id').id
         account_ids = obj_account_account.search(
             [('name', 'ilike', partner_name), ('group_id', '=', group_id)])
+        
+        _logger.warning(f">>>> account_ids encontrados: {account_ids}")
+
         partner_ids = self.env.get('res.partner').search(
             [('property_account_receivable_id', 'in', account_ids.ids)])
         account_id = obj_account_account
