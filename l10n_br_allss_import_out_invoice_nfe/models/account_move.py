@@ -464,6 +464,7 @@ class AllssAccountMoveNfeImport(models.Model):
 
         codigo = get(item.prod, 'cProd', str)
 
+        # busca CFOP no XML da NFe
         cfpo_xml = get(item.prod, 'CFOP', str)
         _logger.warning(f'CFOP do item da NFe: {cfpo_xml}')
 
@@ -472,6 +473,11 @@ class AllssAccountMoveNfeImport(models.Model):
         ], limit=1)
         _logger.warning(f'=============fiscal_position_xml: {fiscal_position_xml}')
 
+
+
+        # buscas uom pelo código da unidade de medida
+        # uom_id = self.env['uom.uom'].sudo().search([('name', '=', str(item.prod.uCom))], limit=1).id
+        # uom_id = self.env['uom.uom'].sudo().search([('name', '=', str('Unidade'))], limit=1).id
 
         # Busca produto pelo código do marketplace (l10n_br_allss_codigo_marketplace)
         if codigo:
@@ -495,6 +501,7 @@ class AllssAccountMoveNfeImport(models.Model):
 
                 account_move_line.update({
                     'product_id': product.id,
+                    'product_uom_id': product.uom_id.id
                 })
 
 
