@@ -540,11 +540,17 @@ class AllssAccountMoveNfeImport(models.Model):
             purchase_order_automation
         )
 
+        # Atualiza a posição fiscal para a de Vendas (out_invoice) na fatura
+        fiscal_position_out_invoice = self.env.ref('l10n_br_allss_import_out_invoice_nfe.l10n_br_allss_xml_import_out_invoice_fiscal_position',
+                                                   raise_if_not_found=False)
+
 
         # Atualiza a condição de pagamento da Fatura
         invoice_payment_term_id = self.env['account.payment.term'].search([('name', 'ilike', '15 dias')], limit=1)
         move.update({
-            'invoice_payment_term_id': invoice_payment_term_id.id
+            'invoice_payment_term_id': invoice_payment_term_id.id,
+            'l10n_br_allss_fiscal_position_id': fiscal_position_out_invoice.id if fiscal_position_out_invoice else fiscal_position_id,
+
         })
 
         return move
