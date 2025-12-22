@@ -549,7 +549,7 @@ class AllssAccountMoveNfeImport(models.Model):
         invoice_payment_term_id = self.env['account.payment.term'].search([('name', 'ilike', '15 dias')], limit=1)
         move.update({
             'invoice_payment_term_id': invoice_payment_term_id.id,
-            'l10n_br_allss_fiscal_position_id': fiscal_position_out_invoice.id if fiscal_position_out_invoice else fiscal_position_id,
+            'fiscal_position_id': fiscal_position_out_invoice.id if fiscal_position_out_invoice else fiscal_position_id,
 
         })
 
