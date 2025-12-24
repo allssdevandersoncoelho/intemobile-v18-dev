@@ -91,8 +91,7 @@
         <field name="model_id" ref="model_allss_balance_account_structure"/>
         <field name="state">code</field>
         <field name="code">
-model.execute_sql()
-model.init_account_structure()
+model.ensure_indexes_then_recalc()
         </field>
     </record>
 

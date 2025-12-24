@@ -214,7 +214,7 @@ class AccountAnalytic(models.Model):
 
         return result
 
-     
+
     def unlink(self):
         for move in self:
             res_move = self.env['account.move'].search([('id', '=', move.move_id.id)])

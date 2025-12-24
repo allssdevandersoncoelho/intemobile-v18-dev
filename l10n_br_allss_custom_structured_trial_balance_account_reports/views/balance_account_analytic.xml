@@ -4,7 +4,7 @@
         <field name="name">view.balance.account.analytic.list</field>
         <field name="model">allss.balance.account.analytic</field>
         <field name="arch" type="xml">
-            <list string="Balancete Estruturado Contas Analiticas" create="false" edit="false" delete="false" duplicate="false">
+            <list string="Balancete Estruturado por Contas Analiticas" create="false" edit="false" delete="false" duplicate="false">
                 <!-- <field name="allss_company_id"/> -->
                 <field name="allss_parent_id_6" column_invisible="True"/>
                 <field name="allss_parent_id_5" column_invisible="True"/>
@@ -28,7 +28,7 @@
         <field name="name">view.balance.account.analytic.pivot</field>
         <field name="model">allss.balance.account.analytic</field>
         <field name="arch" type="xml">
-            <pivot string="Balancete Estruturado Contas Analiticas">
+            <pivot string="Balancete Estruturado por Contas Analiticas">
                 <!-- <field name="allss_company_id"/> -->
                 <field name="allss_parent_id_6" invisible="1"/>
                 <field name="allss_parent_id_5" invisible="1"/>
@@ -51,7 +51,7 @@
         <field name="name">view.search.balance.account.analytic</field>
         <field name="model">allss.balance.account.analytic</field>
         <field name="arch" type="xml">
-            <search string="Balancete Estruturado Contas Analiticas">
+            <search string="Balancete Estruturado por Contas Analiticas">
                 <group expand="1" string="Group By">
                     <filter string="Data" name="data" domain="[]" context="{'group_by':'allss_date'}"></filter>
                     <filter string="Grupo Analítico" name="allss_analytic_plan_id" domain="[]" context="{'group_by':'allss_analytic_plan_id'}"/>
@@ -69,7 +69,7 @@
     </record>
 
     <record id="action_balance_account_analytic" model="ir.actions.act_window">
-        <field name="name">Balancete Estruturado Contas Analiticas</field>
+        <field name="name">Balancete Estruturado por Contas Analiticas</field>
         <field name="res_model">allss.balance.account.analytic</field>
         <!-- <field name="view_mode">list,pivot</field> -->
         <field name="view_mode">list</field>
@@ -85,25 +85,24 @@
 
     <menuitem
         id="menu_balance_account_analytic"
-        name="Balancete Estruturado Contas Analiticas"
+        name="Balancete Estruturado por Contas Analiticas"
         parent="account_reports.account_reports_audit_reports_menu"
         action="action_balance_account_analytic"
         sequence="40"
     />
 
     <record id="action_balance_account_analytic_recalculate" model="ir.actions.server">
-        <field name="name">Recalculo Balancete Estruturado</field>
+        <field name="name">Recalculo Balancete Estruturado por Contas Analíticas</field>
         <field name="model_id" ref="model_allss_balance_account_analytic"/>
         <field name="state">code</field>
         <field name="code">
-model.execute_sql()
-model.init_account_analytic()
+model.ensure_indexes_then_recalc_analytic()
         </field>
     </record>
 
     <menuitem
         id="menu_balance_account_analytic_recalculate"
-        name="Balancete Estruturado Contas Analiticas"
+        name="Balancete Estruturado por Contas Analiticas"
         parent="l10n_br_allss_custom_structured_trial_balance_account_reports.recalculate_balance_structure"
         action="action_balance_account_analytic_recalculate"
         sequence="31"
