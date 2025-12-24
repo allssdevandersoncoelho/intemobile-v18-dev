@@ -81,6 +81,7 @@ def update_account_init(self, data):
         data.update({'allss_credit': 0.0})
         data.update({'allss_debit': 0.0})
         data.update({'allss_final_balance': data.get('allss_final_balance', 0)})
+
         self.env['allss.balance.account.analytic'].create(data)
 
     self.env.cr.commit()
