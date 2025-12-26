@@ -528,7 +528,7 @@ class AllssAccountMoveNfeImport(models.Model):
 
         _logger.warning(f"+++Contexto import_nfe:  {self.env.context}")
 
-        move = super(AllssAccountMoveNfeImport, self.with_context(force_sale_tax_from_nfe=True)).import_nfe(
+        move = super(AllssAccountMoveNfeImport, self.with_context(nfe_flow='sale')).import_nfe(
             auto, company_id, nfe, nfe_xml, dfe,
             partner_automation,
             account_invoice_automation,
@@ -562,23 +562,59 @@ class AllssAccountMoveNfeImport(models.Model):
     def l10n_br_allss_get_tax_nfe_import(self, tax_name, tax_aliquot, tax_value, tax_automation,
                                          **kwargs):
 
-        res = super().l10n_br_allss_get_tax_nfe_import(
-            tax_name, tax_aliquot, tax_value, tax_automation, **kwargs
-        )
+        if self.env.context.get('nfe_flow') != 'sale':
+            return super().l10n_br_allss_get_tax_nfe_import(
+                tax_name, tax_aliquot, tax_value, tax_automation, **kwargs
+            )
 
-        if (
-            self.env.context.get('force_sale_tax_from_nfe')
-            and isinstance(res, (list, tuple))
-            and len(res) >= 2
-            and res[1]
-        ):
-            tax = self.env['account.tax'].browse(res[1])
+        # ===== FLUXO DE VENDA PARA IMPOSTOS NA IMPORTAÇÃO =====
 
-            # só se ainda for purchase
-            if tax.exists() and tax.type_tax_use == 'purchase':
-                tax.sudo().write({
-                    'type_tax_use': 'sale',
-                })
+        obj_account_tax = self.env['account.tax']
+        obj_account_tax_group = self.env['account.tax.group']
+        obj_allss_account_tax = self.env['l10n.br.allss.account.tax']
 
-        return res
+
+        amount_type = 'percent'
+        price_include = False
+
+        if tax_name.upper() in ('DESCONTO', 'FRETE', 'SEGURO', 'OUTROS'):
+            amount_type = 'fixed'
+
+        if tax_name.upper() in ('ICMS', 'PIS', 'COFINS', 'ICMSSUBSTITUTO', 'ICMSSTRET'):
+            amount_type = 'division'
+            price_include = 'tax_included'
+
+        if amount_type != 'fixed':
+            tax_name += f' {tax_aliquot}% Importado NF-e'
+
+        tax_ids = obj_account_tax.search([
+            ('name', '=', tax_name),
+            ('amount_type', '=', amount_type),
+            ('amount', '=', amount_type == 'fixed' and tax_value or tax_aliquot),
+            ('type_tax_use', '=', 'sale'),
+            ('company_id', '=', self.env.company.id)
+        ], limit=1)
+
+        if not tax_ids and tax_automation:
+            tax_group_id = obj_account_tax_group.search(
+                [('name', '=', tax_name)], limit=1
+            ).id
+
+            if not tax_group_id:
+                tax_group_id = obj_account_tax_group.sudo().create({
+                    'name': tax_name
+                }).id
+
+            tax_ids = obj_account_tax.sudo().create({
+                'name': tax_name,
+                'l10n_br_allss_account_tax_id': obj_allss_account_tax,
+                'amount_type': amount_type,
+                'type_tax_use': 'sale',
+                'amount': amount_type == 'fixed' and tax_value or tax_aliquot,
+                'price_include_override': price_include,
+                'description': tax_name,
+                'tax_group_id': tax_group_id,
+            })
+
+        return tax_ids and (4, tax_ids.id, False) or []
     
