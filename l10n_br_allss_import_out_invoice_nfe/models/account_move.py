@@ -585,7 +585,7 @@ class AllssAccountMoveNfeImport(models.Model):
             price_include = 'tax_included'
 
         if amount_type != 'fixed':
-            tax_name += f' {tax_aliquot}% Importado NF-e'
+            tax_name += f' {tax_aliquot}% Importado NF-e [Vendas]'
 
         tax_ids = obj_account_tax.search([
             ('name', '=', tax_name),
