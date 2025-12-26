@@ -528,7 +528,7 @@ class AllssAccountMoveNfeImport(models.Model):
 
         _logger.warning(f"+++Contexto import_nfe:  {self.env.context}")
 
-        move = super().with_context(force_sale_tax_from_nfe=True).import_nfe(
+        move = super(AllssAccountMoveNfeImport, self.with_context(force_sale_tax_from_nfe=True)).import_nfe(
             auto, company_id, nfe, nfe_xml, dfe,
             partner_automation,
             account_invoice_automation,
