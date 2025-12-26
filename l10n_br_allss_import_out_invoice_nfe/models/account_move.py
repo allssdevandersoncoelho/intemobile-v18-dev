@@ -528,7 +528,7 @@ class AllssAccountMoveNfeImport(models.Model):
 
         _logger.warning(f"+++Contexto import_nfe:  {self.env.context}")
 
-        move = super().import_nfe(
+        move = super().with_context(force_sale_tax_from_nfe=True).import_nfe(
             auto, company_id, nfe, nfe_xml, dfe,
             partner_automation,
             account_invoice_automation,
@@ -557,3 +557,28 @@ class AllssAccountMoveNfeImport(models.Model):
         })
 
         return move
+    
+
+    def l10n_br_allss_get_tax_nfe_import(self, tax_name, tax_aliquot, tax_value, tax_automation,
+                                         **kwargs):
+
+        res = super().l10n_br_allss_get_tax_nfe_import(
+            tax_name, tax_aliquot, tax_value, tax_automation, **kwargs
+        )
+
+        if (
+            self.env.context.get('force_sale_tax_from_nfe')
+            and isinstance(res, (list, tuple))
+            and len(res) >= 2
+            and res[1]
+        ):
+            tax = self.env['account.tax'].browse(res[1])
+
+            # só se ainda for purchase
+            if tax.exists() and tax.type_tax_use == 'purchase':
+                tax.sudo().write({
+                    'type_tax_use': 'sale',
+                })
+
+        return res
+    
