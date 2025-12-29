@@ -568,6 +568,23 @@ class AllssAccountMoveNfeImport(models.Model):
             )
         
         # ===== FLUXO DE VENDA PARA IMPOSTOS NA IMPORTAÇÃO =====
+        obj_ir_module_module = self.env.get('ir.module.module')
+        module = 'l10n_br_allss_account_template_only_taxes'
+        if not obj_ir_module_module.search_count(
+                [('name', '=', module), ('state', '=', 'installed')]):
+            module = 'l10n_br_allss_account_template_full'
+            if not obj_ir_module_module.search_count(
+                    [('name', '=', module), ('state', '=', 'installed')]):
+                module = ''
+        if module:
+            try:
+                brw_tax = self.env.ref('%s.%s_template_account_tax_%s_xmlimport' % (
+                    module, self.env.company.id, tax_name.lower()))
+            except ValueError:
+                brw_tax = None
+            if brw_tax:
+                return 4, brw_tax.id, False
+            
         obj_account_tax = self.env.get('account.tax')
         obj_allss_account_tax = self.env.get('l10n.br.allss.account.tax')
         obj_account_tax_group = self.env.get('account.tax.group')
