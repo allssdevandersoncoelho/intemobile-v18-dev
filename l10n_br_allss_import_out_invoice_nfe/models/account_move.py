@@ -624,7 +624,7 @@ class AllssAccountMoveNfeImport(models.Model):
             amount_type = 'division'
             price_include = 'tax_included'
         if amount_type != 'fixed':
-            tax_name += ' %s%% Importado NF-e [Vendas]' % tax_aliquot
+            tax_name += ' %s%% Importado NF-e' % tax_aliquot
         if len(kwargs.get('cst') or '') == 3:
             tax_name += ' SN'
         tax_ids = obj_account_tax.search([
@@ -655,58 +655,3 @@ class AllssAccountMoveNfeImport(models.Model):
                 'tax_group_id': tax_group_id,
             })
         return tax_ids and (4, tax_ids.ids[0], False) or []
-    
-
-
-
-        # ===== FLUXO DE VENDA PARA IMPOSTOS NA IMPORTAÇÃO =====
-
-        # obj_account_tax = self.env['account.tax']
-        # obj_account_tax_group = self.env['account.tax.group']
-        # obj_allss_account_tax = self.env['l10n.br.allss.account.tax']
-
-
-        # amount_type = 'percent'
-        # price_include = False
-
-        # if tax_name.upper() in ('DESCONTO', 'FRETE', 'SEGURO', 'OUTROS'):
-        #     amount_type = 'fixed'
-
-        # if tax_name.upper() in ('ICMS', 'PIS', 'COFINS', 'ICMSSUBSTITUTO', 'ICMSSTRET'):
-        #     amount_type = 'division'
-        #     price_include = 'tax_included'
-
-        # if amount_type != 'fixed':
-        #     tax_name += f' {tax_aliquot}% Importado NF-e [Vendas]'
-
-        # tax_ids = obj_account_tax.search([
-        #     ('name', '=', tax_name),
-        #     ('amount_type', '=', amount_type),
-        #     ('amount', '=', amount_type == 'fixed' and tax_value or tax_aliquot),
-        #     ('type_tax_use', '=', 'sale'),
-        #     ('company_id', '=', self.env.company.id)
-        # ], limit=1)
-
-        # if not tax_ids and tax_automation:
-        #     tax_group_id = obj_account_tax_group.search(
-        #         [('name', '=', tax_name)], limit=1
-        #     ).id
-
-        #     if not tax_group_id:
-        #         tax_group_id = obj_account_tax_group.sudo().create({
-        #             'name': tax_name
-        #         }).id
-
-        #     tax_ids = obj_account_tax.sudo().create({
-        #         'name': tax_name,
-        #         'l10n_br_allss_account_tax_id': obj_allss_account_tax,
-        #         'amount_type': amount_type,
-        #         'type_tax_use': 'sale',
-        #         'amount': amount_type == 'fixed' and tax_value or tax_aliquot,
-        #         'price_include_override': price_include,
-        #         'description': tax_name,
-        #         'tax_group_id': tax_group_id,
-        #     })
-
-        # return tax_ids and (4, tax_ids.id, False) or []
-    
