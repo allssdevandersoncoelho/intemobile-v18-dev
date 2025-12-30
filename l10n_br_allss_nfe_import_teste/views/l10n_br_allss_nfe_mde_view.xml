@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_l10n_br_allss_nfe_mde_search" model="ir.ui.view">
+        <field name="name">ALLSS Filtros Para o Manifesto</field>
+        <field name="model">l10n.br.allss.nfe.mde</field>
+        <field name="arch" type="xml">
+            <search string="Filtrar">
+                <field name="l10n_br_allss_nfe_number"/>
+                <field name="l10n_br_allss_nfe_key"/>
+                <field name="partner_id"/>
+                <field name="l10n_br_allss_corporate_name"/>
+                <field name="l10n_br_allss_country_registry_vendor"/>
+                <field name="l10n_br_allss_state_registry"/>
+                <field name="l10n_br_allss_nfe_price_total"/>
+                <field name="state" string="Situação"/>
+                <filter name="situacao_pendente" string="Pendentes" domain="[('state','=','pendente')]"/>
+                <filter name="situacao_confirmado" string="Confirmados" domain="[('state','=','confirmado')]"/>
+                <filter name="situacao_ciente" string="Ciente da operação" domain="[('state','=','ciente')]"/>
+                <filter name="situacao_desconhecido" string="Desconhecidos" domain="[('state','=','desconhecido')]"/>
+                <filter name="situacao_nao_realizado" string="Não realizados" domain="[('state','=','nao_realizado')]"/>
+                <group expand='0' string='Group By...'>
+                    <filter name="partner_id" string="Parceiro" domain="[]" context="{'group_by' : 'partner_id'}"/>
+                    <filter name="l10n_br_allss_corporate_name" string="Razão Social" domain="[]" context="{'group_by' : 'l10n_br_allss_corporate_name'}"/>
+                    <filter name="l10n_br_allss_country_registry_vendor" string="CNPJ" domain="[]" context="{'group_by' : 'l10n_br_allss_country_registry_vendor'}"/>
+                    <filter name="l10n_br_allss_state_registry" string="RG/Inscr. Estadual" domain="[]" context="{'group_by' : 'l10n_br_allss_state_registry'}"/>
+                    <filter name="state" string="Situação da Manifestação" domain="[]" context="{'group_by' : 'state'}"/>
+                    <filter name="l10n_br_allss_nfe_situation" string="Situação NF-e" domain="[]" context="{'group_by' : 'l10n_br_allss_nfe_situation'}"/>
+                    <filter name="l10n_br_allss_operation_type" string="Operação" domain="[]" context="{'group_by' : 'l10n_br_allss_operation_type'}"/>
+                    <filter name="l10n_br_allss_emission_date" string="Data Emissão" domain="[]" context="{'group_by' : 'l10n_br_allss_emission_date'}"/>
+                    <filter name="l10n_br_allss_include_date" string="Data Inclusão" domain="[]" context="{'group_by' : 'l10n_br_allss_include_date'}"/>
+                    <filter name="l10n_br_allss_include_type" string="Forma Inclusão" domain="[]" context="{'group_by' : 'l10n_br_allss_include_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_l10n_br_allss_nfe_mde_tree">
+        <field name="name">ALLSS Lista de Manisfesto do Destinatário</field>
+        <field name="model">l10n.br.allss.nfe.mde</field>
+        <field name="arch" type="xml">
+            <list string="NFe Destinadas" create="0">
+                <field name="l10n_br_allss_sequence_number" optional="hide"/>
+                <field name="l10n_br_allss_nfe_number" optional="show"/>
+                <field name="l10n_br_allss_nfe_key" optional="show"/>
+                <field name="partner_id" optional="show"/>
+                <field name="l10n_br_allss_country_registry_vendor" optional="show"/>
+                <field name="l10n_br_allss_corporate_name" optional="show"/>
+                <field name="l10n_br_allss_emission_date" optional="show"/>
+                <field name="l10n_br_allss_include_date" optional="hide"/>
+                <field name="l10n_br_allss_include_type" optional="hide"/>
+                <field name="state" string="Situação" widget="badge" 
+                        decoration-muted="state == 'pendente' or state == False" 
+                        decoration-info="state == 'ciente'" 
+                        decoration-success="state == 'confirmado'" 
+                        decoration-danger="state == 'desconhecido'" 
+                        decoration-it="state == 'nao_realizado'" 
+                        optional="show"/>
+                <field name="l10n_br_allss_nfe_situation" widget="badge" 
+                        decoration-muted="l10n_br_allss_nfe_situation == False" 
+                        decoration-success="l10n_br_allss_nfe_situation == '1'" 
+                        decoration-danger="l10n_br_allss_nfe_situation == '2'" 
+                        decoration-it="l10n_br_allss_nfe_situation == '3'" 
+                        optional="hide"/>
+                <field name="l10n_br_allss_nfe_price_total" optional="show"/>
+                <field name="l10n_br_allss_operation_type" optional="hide"/>
+                <field name="l10n_br_allss_account_move_id" optional="show"/>
+                <field name="l10n_br_allss_nfe_xml" filename="l10n_br_allss_nfe_xml_name" widget="binary" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_l10n_br_allss_nfe_mde_form">
+        <field name="name">ALLSS Manifesto do Destinatário</field>
+        <field name="model">l10n.br.allss.nfe.mde</field>
+        <field name="arch" type="xml">
+            <form string="Manifesto do Destinatário">
+                <header>
+                    <button name="l10n_br_allss_action_known_emission" string="Ciência da Emissão" type="object" invisible="state != 'pendente'" />
+                    <button name="l10n_br_allss_action_confirm_operation" string="Confirmar Operação" type="object" invisible="state != 'ciente'" />
+                    <button name="l10n_br_allss_action_unknown_operation" string="Desconhecer Operação" type="object" invisible="state != 'ciente'" />
+                    <button name="l10n_br_allss_action_not_operation" string="Operação não Realizada" type="object" invisible="state != 'ciente'" />
+                    <button name="l10n_br_allss_action_download_xml" string="Download do XML" type="object" invisible="state not in ['ciente','confirmado','desconhecido','nao_realizado']" />
+                    <button name="l10n_br_allss_action_import_xml" string="Criar Fatura" type="object" invisible="state not in ['ciente','confirmado','desconhecido','nao_realizado']" />
+                </header>
+                <sheet>
+                    <div name="button_box" class="oe_button_box" >
+                        <button name="l10n_br_allss_action_view_edocs" 
+                                type="object" 
+                                class="oe_stat_button" 
+                                icon="fa-file-text-o"
+                                invisible="not l10n_br_allss_total_edocs or l10n_br_allss_total_edocs == 0">
+                            <field name="l10n_br_allss_total_edocs" /> <span> Fatura </span>
+                        </button>
+                    </div>
+                    <h4 class="mt0">
+                        <label for="l10n_br_allss_nfe_key" string="Chave NF-e:"/><br/>
+                        <field name="l10n_br_allss_nfe_key" class="oe_inline"/>
+                    </h4>
+                    <group>
+                        <group>
+                            <field name="l10n_br_allss_nfe_number"/>
+                            <field name="l10n_br_allss_sequence_number"/>
+                            <field name="l10n_br_allss_country_registry_vendor"/>
+                            <field name="l10n_br_allss_state_registry"/>
+                            <field name="l10n_br_allss_corporate_name"/>
+                            <field name="partner_id"/>
+                            <field name="l10n_br_allss_emission_date"/>
+                            <field name="l10n_br_allss_account_move_id"/>
+                            <field name="l10n_br_allss_partner_nf_empenho" readonly="1" invisible="1"/>
+                            <field name="l10n_br_allss_xpedcom" readonly="1" invisible="1"/>
+                            <field name="l10n_br_allss_xcontractcom" readonly="1" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="currency_id" groups="base.group_multi_currency"/>
+                            <field name="l10n_br_allss_operation_type"/>
+                            <field name="l10n_br_allss_nfe_price_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="l10n_br_allss_nfe_situation"/>
+                            <field name="state" />
+                            <field name="l10n_br_allss_include_type"/>
+                            <field name="l10n_br_allss_include_date"/>
+                            <field name="company_id" groups="base.group_multi_company" />
+                            <field name="l10n_br_allss_nfe_xml_name" invisible="1"/>
+                            <field name="l10n_br_allss_nfe_xml" filename="l10n_br_allss_nfe_xml_name"/>
+                        </group>
+                    </group>
+                    <separator string="Itens da Nf-e"/>
+                    <field name="l10n_br_allss_nfe_mde_item_ids" nolabel="True" invisible="l10n_br_allss_nfe_xml == False">
+                        <list string="Itens da NF-e" editable="top" create="0" delete="0">
+                            <field name="l10n_br_allss_product_id"/>
+                            <field name="l10n_br_allss_cprod" readonly="True"/>
+                            <field name="l10n_br_allss_xprod" readonly="True"/>
+                            <field name="l10n_br_allss_cean" readonly="True" optional="hide"/>
+                            <field name="l10n_br_allss_qcom" readonly="True"/>
+                            <field name="l10n_br_allss_ucom" readonly="True"/>
+                            <field name="l10n_br_allss_vuncom" readonly="True"/>
+                            <field name="l10n_br_allss_ncm" readonly="True" optional="hide"/>
+                            <field name="l10n_br_allss_fiscal_position_id" readonly="True"/>
+                            <field name="l10n_br_allss_cfop_id" options="{'no_create': True, 'no_create_edit':True}"/>
+                            <field name="l10n_br_allss_tax_ids" widget="many2many_tags" readonly="True"/>
+                            <button name="l10n_br_allss_open_nfe_mde_item_form" string="Abrir"
+                                    type="object" icon="fa-edit" default_focus="1"/>
+                            <field name="l10n_br_allss_vprod" readonly="True"/>
+                            <field name="l10n_br_allss_purchase_order_id"
+                                   domain="[('partner_id', '=', parent.partner_id), ('state','in',('purchase','done'))]"
+                                   options="{'no_create': True, 'no_create_edit':True}"/>
+                            <field name="l10n_br_allss_purchase_order_line_id"
+                                   domain="[('order_id', '=', l10n_br_allss_purchase_order_id)]"
+                                   options="{'no_create': True, 'no_create_edit':True}"/>
+<!--                            <field name="l10n_br_allss_xped"/>-->
+<!--                            <field name="l10n_br_allss_nitemped"/>-->
+                        </list>
+                    </field>
+<!--                    <notebook>-->
+<!--                        <page name="eventos" string="Eventos">-->
+<!--                            <group>-->
+
+<!--                            </group>-->
+<!--                        </page>-->
+<!--                    </notebook>-->
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_l10n_br_allss_nfe_mde_item_form">
+        <field name="name">ALLSS Item do Manifesto do Destinatário</field>
+        <field name="model">l10n.br.allss.nfe.mde.item</field>
+        <field name="arch" type="xml">
+            <form string="Item do Manifesto do Destinatário">
+                <field name="l10n_br_allss_taxation_ids" nolabel="1" readonly="True" colspan="4">
+                    <list string="Tributação" editable="top">
+                        <field name="l10n_br_allss_tax_id"/>
+                        <field name="l10n_br_allss_base_calculo"/>
+                        <field name="l10n_br_allss_aliquota"/>
+                        <field name="l10n_br_allss_valor"/>
+                        <field name="l10n_br_allss_cst"/>
+                    </list>
+                </field>
+            </form>
+        </field>
+    </record>
+</odoo>

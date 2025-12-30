@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_l10n_br_allss_wizard_nfe_schedule_form" model="ir.ui.view">
+        <field name="name">Allss Wizard NFe Schedule</field>
+        <field name="model">l10n.br.allss.wizard.nfe.schedule</field>
+        <field name="arch" type="xml">
+            <form string="Verificar downloads pendentes">
+                <field name="state" invisible="1"/>
+                <label for="state" string="Ao clicar em verificar o Odoo irá buscar as notas fiscais pendentes de
+                processamento na SEFAZ"/>
+                <footer invisible="state != 'init'">
+                    <button string="Verificar" name="l10n_br_allss_execute_download" type="object" class="oe_highlight"/> ou
+                    <button string="Cancel" special="cancel" type="object" class="oe_link"/>
+                </footer>
+                <footer invisible="state != 'done'">
+                    <button string="Done" special="cancel" type="object"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

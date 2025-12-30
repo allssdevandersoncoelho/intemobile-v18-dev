@@ -20,7 +20,8 @@
     ],
     'depends': [
         'l10n_br_edi_stock',
-        'l10n_br_allss_nfe_import',
+        # 'l10n_br_allss_nfe_import',
+        'l10n_br_allss_nfe_import_teste',
     ],
     'data': [
         #data
