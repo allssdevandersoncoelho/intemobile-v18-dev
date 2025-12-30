@@ -65,7 +65,7 @@
     </record>
 
     <menuitem id="menu_l10n_br_allss_wizard_nfe_out_invoice_import" name="Importar NF-e (XML) - Vendas"
-              parent="l10n_br_allss_nfe_import.menu_l10n_br_allss_nfe_automation" action="action_l10n_br_allss_wizard_nfe_out_invoice_import"
+              parent="l10n_br_allss_nfe_import_teste.menu_l10n_br_allss_nfe_automation" action="action_l10n_br_allss_wizard_nfe_out_invoice_import"
               sequence="10" />
 
 
