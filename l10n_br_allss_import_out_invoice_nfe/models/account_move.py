@@ -682,4 +682,6 @@ class AllssAccountMoveNfeImport(models.Model):
                 if d[0] == 'type_tax_use' and d[2] == 'purchase':
                     domain[i] = ('type_tax_use', '=', 'sale')
 
+            _logger.warning(f'>>> ALLSS > _get_tax > domínio ajustado para fluxo de venda: {domain}')
+
             return super()._get_tax(tax_name, tax_automation, domain)
