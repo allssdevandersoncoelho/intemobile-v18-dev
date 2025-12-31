@@ -1597,7 +1597,7 @@ class AllssAccountMoveNfeImport(models.Model):
         return {'purchase_id': purchase_id.id}
 
 
-    def dict_to_domain_tax(self, vals: dict, tol=1e-6) -> list:
+    def dict_to_domain_tax(self, vals: dict, company_id, tol=1e-6) -> list:
         """
         Domain específico p/ localizar account.tax por atributos estáveis,
         usando tolerância em campos float.
@@ -1616,7 +1616,9 @@ class AllssAccountMoveNfeImport(models.Model):
             'base_reduction',
         ]
 
-        domain = []
+        domain = [
+            ('company_id', 'in', [False, company_id])
+        ]
         for f in stable_fields_eq:
             v = vals.get(f)
             if v not in (None, False, ''):
@@ -1656,9 +1658,9 @@ class AllssAccountMoveNfeImport(models.Model):
         message = ""
         obj_account_tax = self.env.get('account.tax')
         obj_account_tax_group = self.env.get('account.tax.group')
-        tax_ids = obj_account_tax.search(self.dict_to_domain_tax(tax_dict), limit=1)
+        tax_ids = obj_account_tax.search(self.dict_to_domain_tax(tax_dict, self.env.company.id), limit=1)
         _logger.warning(f">>>>>>>>>> ALLSS > GET TAX > tax_ids ({type(tax_ids)}): {tax_ids}")
-        
+
         if not tax_ids and tax_automation:
             tax_group_id = obj_account_tax_group.search([('name', '=', tax_name)], limit=1).id
             if not tax_group_id:
