@@ -66,7 +66,8 @@ class L10nBrAlssWizardNfeImport(models.TransientModel):
                 'l10n_br_allss_picking_type_id': self.l10n_br_allss_picking_type_id.id
             })
         
-        return True if obj_account_move else False
+        return True if move else False
+        # return True if obj_account_move else False
     
 
 
