@@ -1662,9 +1662,13 @@ class AllssAccountMoveNfeImport(models.Model):
         _logger.warning(f">>>>>>>>>> ALLSS > GET TAX > tax_ids ({type(tax_ids)}): {tax_ids}")
 
         if not tax_ids and tax_automation:
-            tax_group_id = obj_account_tax_group.search([('name', '=', tax_name)], limit=1).id
+            tax_group_id = obj_account_tax_group.search([('name', '=', tax_name),
+                                                        '|',
+                                                        ('company_id', '=', self.env.company.id),
+                                                        ('company_id', '=', False),], limit=1).id
             if not tax_group_id:
-                tax_group_id = obj_account_tax_group.sudo().create({'name': tax_name}).id
+                tax_group_id = obj_account_tax_group.sudo().create({'name': tax_name, 
+                                                                    'company_id': self.env.company.id,}).id
             if obj_account_tax.search([('name', '=', tax_name)]):
                 tax_name += '*'
 
