@@ -1651,12 +1651,14 @@ class AllssAccountMoveNfeImport(models.Model):
         Returns:
             
         """
+        _logger.warning(f">>>>>>>>>> CHEGOU NO _get_tax >>>>>>>>>>>")
 
         message = ""
         obj_account_tax = self.env.get('account.tax')
         obj_account_tax_group = self.env.get('account.tax.group')
 
         tax_ids = obj_account_tax.search(self.dict_to_domain_tax(tax_dict), limit=1)
+        _logger.warning(f">>>>>>>>>> ALLSS > GET TAX > tax_ids ({type(tax_ids)}): {tax_ids}")
         if not tax_ids and tax_automation:
             tax_group_id = obj_account_tax_group.search([('name', '=', tax_name)], limit=1).id
             if not tax_group_id:
