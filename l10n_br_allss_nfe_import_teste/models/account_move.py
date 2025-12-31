@@ -1618,7 +1618,9 @@ class AllssAccountMoveNfeImport(models.Model):
 
         domain = []
         for f in stable_fields_eq:
+            _logger.warning(f">>>>>>>>>> ALLSS > dict_to_domain_tax > f: {f}")
             v = vals.get(f)
+            _logger.warning(f">>>>>>>>>> ALLSS > dict_to_domain_tax > v: {v}")
             if v not in (None, False, ''):
                 domain.append((f, '=', v))
 
@@ -1655,7 +1657,7 @@ class AllssAccountMoveNfeImport(models.Model):
 
         message = ""
         _logger.warning(f">>>>>>>>>> CHEGOU pós message no _get_tax >>>>>>>>>>>")
-        
+
         obj_account_tax = self.env.get('account.tax')
         _logger.warning(f">>>>>>>>>> CHEGOU NO obj_account_tax no _get_tax {obj_account_tax}>>>>>>>>>>>")
 
