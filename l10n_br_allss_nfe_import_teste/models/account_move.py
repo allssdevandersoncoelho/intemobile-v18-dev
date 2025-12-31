@@ -1597,7 +1597,7 @@ class AllssAccountMoveNfeImport(models.Model):
         return {'purchase_id': purchase_id.id}
 
 
-    def dict_to_domain_tax(vals: dict, tol=1e-6) -> list:
+    def dict_to_domain_tax(self, vals: dict, tol=1e-6) -> list:
         """
         Domain específico p/ localizar account.tax por atributos estáveis,
         usando tolerância em campos float.
