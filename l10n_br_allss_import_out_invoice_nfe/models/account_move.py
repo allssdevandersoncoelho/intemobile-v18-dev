@@ -674,14 +674,40 @@ class AllssAccountMoveNfeImport(models.Model):
     #     return tax_ids and (4, tax_ids.ids[0], False) or []
 
 
-    def _get_tax(self, tax_name, tax_automation=False, domain=[]):
-        domain = list(domain)
+    # def _get_tax(self, tax_name, tax_automation=False, domain=[]):
+    #     domain = list(domain)
 
+    #     if self.env.context.get('nfe_flow') == 'sale':
+    #         for i, d in enumerate(domain):
+    #             if d[0] == 'type_tax_use' and d[2] == 'purchase':
+    #                 domain[i] = ('type_tax_use', '=', 'sale')
+
+    #         _logger.warning(f'>>> ALLSS > _get_tax > domínio ajustado para fluxo de venda: {domain}')
+
+    #         return super()._get_tax(tax_name, tax_automation, domain)
+
+
+    def _get_tax(
+        self,
+        tax_name: str = "",
+        allss_account_tax_id=None,
+        tax_dict: dict = None,
+        tax_automation=False,
+        **kwargs):
+        
+        tax_dict = dict(tax_dict or {})
+
+        # Ajuste para contexto de venda
         if self.env.context.get('nfe_flow') == 'sale':
-            for i, d in enumerate(domain):
-                if d[0] == 'type_tax_use' and d[2] == 'purchase':
-                    domain[i] = ('type_tax_use', '=', 'sale')
+            if tax_dict.get('type_tax_use') == 'purchase':
+                tax_dict['type_tax_use'] = 'sale'
 
-            _logger.warning(f'>>> ALLSS > _get_tax > domínio ajustado para fluxo de venda: {domain}')
+            _logger.warning(f">>> ALLSS > GET TAX VENDAS(sale) > tax_dict ajustado: {tax_dict}")
 
-            return super()._get_tax(tax_name, tax_automation, domain)
+        return super()._get_tax(
+            tax_name=tax_name,
+            allss_account_tax_id=allss_account_tax_id,
+            tax_dict=tax_dict,
+            tax_automation=tax_automation,
+            **kwargs
+        )

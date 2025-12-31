@@ -1618,10 +1618,7 @@ class AllssAccountMoveNfeImport(models.Model):
 
         domain = []
         for f in stable_fields_eq:
-            _logger.warning(f">>>>>>>>>> ALLSS > dict_to_domain_tax > f: {f}")
-            _logger.warning(f">>>>>>>>>> ALLSS > dict_to_domain_tax > vals: {vals} | type(vals): {type(vals)}")
             v = vals.get(f)
-            _logger.warning(f">>>>>>>>>> ALLSS > dict_to_domain_tax > v: {v}")
             if v not in (None, False, ''):
                 domain.append((f, '=', v))
 
@@ -1657,16 +1654,11 @@ class AllssAccountMoveNfeImport(models.Model):
         _logger.warning(f">>>>>>>>>> CHEGOU NO _get_tax >>>>>>>>>>>")
 
         message = ""
-        _logger.warning(f">>>>>>>>>> CHEGOU pós message no _get_tax >>>>>>>>>>>")
-
         obj_account_tax = self.env.get('account.tax')
-        _logger.warning(f">>>>>>>>>> CHEGOU NO obj_account_tax no _get_tax {obj_account_tax}>>>>>>>>>>>")
-
         obj_account_tax_group = self.env.get('account.tax.group')
-        _logger.warning(f">>>>>>>>>> CHEGOU NO obj_account_tax_group no _get_tax {obj_account_tax_group}>>>>>>>>>>>")
-
         tax_ids = obj_account_tax.search(self.dict_to_domain_tax(tax_dict), limit=1)
         _logger.warning(f">>>>>>>>>> ALLSS > GET TAX > tax_ids ({type(tax_ids)}): {tax_ids}")
+        
         if not tax_ids and tax_automation:
             tax_group_id = obj_account_tax_group.search([('name', '=', tax_name)], limit=1).id
             if not tax_group_id:
