@@ -234,7 +234,7 @@ class L10nBrAllssWizardNfeSchedule(models.TransientModel):
                 continue
             
             registers_limit = int(self.env['ir.config_parameter'].sudo().\
-                                  get_param('l10n_br_allss_nfe_import_teste.l10n_br_allss_nfe_import_teste_nfe_mde_limit_for_process','50'))
+                                  get_param('l10n_br_allss_nfe_import_teste.l10n_br_allss_nfe_import_nfe_mde_limit_for_process','50'))
 
             _logger.warning(f'>>>>>>>>>> ALLSS > l10n_br_allss_cron_manifest_automation > registers_limit ({type(registers_limit)}): {registers_limit}')
 
