@@ -543,6 +543,7 @@ class AllssAccountMoveNfeImport(models.Model):
         icms_base_calculo = 0
         icms_subs_valor = 0
         icms_st_ret_valor = 0
+        icms_tax_id = None
         if hasattr(item.imposto, 'ICMS'):
             icms_dados = self._get_icms(item.imposto)
             icms_aliquota = icms_dados.get('icms_st_base_calculo') \
@@ -587,7 +588,7 @@ class AllssAccountMoveNfeImport(models.Model):
                     icms_st_ret_aliquota = icms_aliquota_escolhida
                     icms_st_ret_valor = icms_dados.get('icms_st_valor_ret') or 0
                     icms_valor_escolhido = icms_st_ret_valor
-                tax_ids.append(self.l10n_br_allss_get_tax_nfe_import(
+                icms_tax_id = self.l10n_br_allss_get_tax_nfe_import(
                     cod_icms,
                     icms_aliquota_escolhida,
                     icms_valor_escolhido,
@@ -597,7 +598,9 @@ class AllssAccountMoveNfeImport(models.Model):
                        'cst': icms_dados.get('icms_cst'),
                        'motivo_desoneracao': icms_dados.get('icms_motivo_desoneracao'),
                        'origem': icms_dados.get('origem'),
-                       }))
+                       }
+                )
+                tax_ids.append(icms_tax_id)
             icms_base_calculo = icms_dados.get('icms_st_base_calculo') \
                 or icms_dados.get('icms_base_calculo') or item.prod.vProd or 0
             if icms_dados.get('icms_st_base_calculo_ret'):
@@ -646,10 +649,11 @@ class AllssAccountMoveNfeImport(models.Model):
             # account_move_line.sudo().update()
 
         difal_dados = {}
-        if hasattr(item.imposto, 'DIFAL'):
-            difal_dados = self._get_difal(item.imposto.DIFAL)
+        if hasattr(item.imposto, 'ICMSUFDest') and icms_dados:
+            difal_dados = self._get_difal(icms_dados)
             difal_dados and tax_ids.append(self.l10n_br_allss_get_tax_nfe_import(
-                'DIFAL', 0, difal_dados.get('difal_valor') or 0, tax_automation))
+                'DIFAL', difal_dados.get('difal_aliquota'), difal_dados.get('difal_valor'),
+                tax_automation, icms_inter_tax_id=icms_tax_id))
 
         fecp_dados = {}
         if hasattr(item.imposto, 'FCP'):
@@ -706,7 +710,8 @@ class AllssAccountMoveNfeImport(models.Model):
                 },
                 'difal': {
                     'base_calculo': difal_dados.get('difal_base_calculo') or 0,
-                    'aliquota': difal_dados.get('difal_aliquota') or 0,
+                    'aliquota': difal_dados.get('difal_aliquota') and difal_dados.get(
+                        'difal_aliquota') - icms_aliquota or 0,
                     'valor': difal_dados.get('difal_valor') or 0,
                     'cst': difal_dados.get('difal_cst'),
                 },
@@ -804,22 +809,49 @@ class AllssAccountMoveNfeImport(models.Model):
         price_include = False
         if tax_name.upper() in ('DESCONTO', 'FRETE', 'SEGURO', 'OUTROS'):
             amount_type = 'fixed'
-        if tax_name.upper() in ('ICMS', 'PIS', 'COFINS', 'ICMSSUBSTITUTO', 'ICMSSTRET'):
+        if tax_name.upper() in ('ICMS', 'PIS', 'COFINS', 'ICMSSUBSTITUTO', 'ICMSSTRET', 'DIFAL'):
             amount_type = 'division'
             price_include = 'tax_included'
         if amount_type != 'fixed':
             tax_name += ' %s%% Importado NF-e' % tax_aliquot
         if len(kwargs.get('cst') or '') == 3:
             tax_name += ' SN'
-        tax_ids= self._get_tax(tax_name,
-                               tax_automation,
-                                [
-                                    ('l10n_br_allss_account_tax_id', 'in', allss_account_tax_id.ids),
-                                    ('amount_type', '=', amount_type),
-                                    ('amount', '=', amount_type == 'fixed' and tax_value or tax_aliquot),
-                                    ('type_tax_use', '=', "purchase"),
-                                    ('company_id', '=', self.env.company.id)
-                                ])
+        
+        tax_dict = {
+                # 'name': tax_name,
+                'l10n_br_allss_account_tax_id': allss_account_tax_id.ids[0],
+                'amount_type': amount_type,
+                'type_tax_use': 'purchase',
+                'amount_mva': kwargs.get('icms_st_aliquota_mva') or 0,
+                'base_reduction': kwargs.get('icms_aliquota_reducao_base') or 0,
+                # 'l10n_br_allss_tax_rate_compute': amount_type != 'fixed' and not tax_aliquot,
+                'l10n_br_allss_tax_rate_compute': False,
+                'amount': amount_type == 'fixed' and tax_value or tax_aliquot,
+                'price_include_override': price_include,
+                # 'description': tax_name,
+                # 'tax_group_id': tax_group_id,
+            }
+
+        ret_get_tax = self._get_tax(
+                            tax_name,
+                            allss_account_tax_id,
+                            tax_dict,
+                            tax_automation,
+                            kwargs
+                        )
+        if ret_get_tax:
+            tax_ids = ret_get_tax[0]
+            message = ret_get_tax[1]
+            if message:
+                _logger.warning(f">>>>>>>>>> ALLSS > l10n_br_allss_get_tax_nfe_import > message: {message}")
+
+        # tax_ids = obj_account_tax.search([
+        #     ('l10n_br_allss_account_tax_id', 'in', allss_account_tax_id.ids),
+        #     ('amount_type', '=', amount_type),
+        #     ('amount', '=', amount_type == 'fixed' and tax_value or tax_aliquot),
+        #     ('type_tax_use', '=', 'purchase'),
+        #     ('company_id', '=', self.env.company.id)
+        # ], limit=1)
         # if not tax_ids and tax_automation:
         #     tax_group_id = obj_account_tax_group.search([('name', '=', tax_name)], limit=1).id
         #     if not tax_group_id:
@@ -840,6 +872,11 @@ class AllssAccountMoveNfeImport(models.Model):
         #         'description': tax_name,
         #         'tax_group_id': tax_group_id,
         #     })
+        # tax_ids and tax_automation and allss_account_tax_id.ids \
+        #     and kwargs.get('icms_inter_tax_id') \
+        #     and allss_account_tax_id[0].write(
+        #         {'l10n_br_allss_tax_deduce_result': [(6, 0, [kwargs.get('icms_inter_tax_id')[1]])]}
+        #     )
         return tax_ids and (4, tax_ids.ids[0], False) or []
 
     def _get_icms(self, imposto):
@@ -910,6 +947,8 @@ class AllssAccountMoveNfeImport(models.Model):
                         icms, '%s%s.vICMSSTRet' % (tag_icms, cst)),
                     'icms_bc_uf_dest': get(
                         imposto, 'ICMSUFDest.vBCUFDest'),
+                    'icms_bc_fcp_uf_dest': get(
+                        imposto, 'ICMSUFDest.vBCFCPUFDest'),
                     'icms_aliquota_fcp_uf_dest': get(
                         imposto, 'ICMSUFDest.pFCPUFDest'),
                     'icms_aliquota_uf_dest': get(
@@ -1035,17 +1074,11 @@ class AllssAccountMoveNfeImport(models.Model):
         return (4, di.id, False)
 
     def _get_difal(self, difal):
-        vals = {}
-        for item in difal.getchildren():
-            difal_cst = get(difal, '%s.CST' % item.tag[36:])
-            difal_cst = str(difal_cst).zfill(2)
-
-            vals = {
-                'difal_cst': difal_cst,
-                'difal_base_calculo': get(difal, '%s.vBC' % item.tag[36:]),
-                'difal_aliquota': get(difal, '%s.pDIFAL' % item.tag[36:]),
-                'difal_valor': get(difal, '%s.vDIFAL' % item.tag[36:]),
-            }
+        vals = {
+            'difal_base_calculo': difal.get('icms_bc_uf_dest') or 0,
+            'difal_aliquota': difal.get('icms_aliquota_uf_dest') or 0,
+            'difal_valor': difal.get('icms_uf_dest') or 0,
+        }
         return remove_none_values(vals)
 
     def _get_fecp(self, fecp):
@@ -1563,49 +1596,94 @@ class AllssAccountMoveNfeImport(models.Model):
         _logger.warning(f">>>>>>>>>>ALLSS > _l10n_br_allss_create_purchase_order_vals > purchase_id ({type(purchase_id)}): {purchase_id}")
         return {'purchase_id': purchase_id.id}
 
-    def _get_tax(self, tax_name, tax_automation=False, domain=[]):
+
+    def dict_to_domain_tax(vals: dict, tol=1e-6) -> list:
+        """
+        Domain específico p/ localizar account.tax por atributos estáveis,
+        usando tolerância em campos float.
+        """
+        stable_fields_eq = [
+            'l10n_br_allss_account_tax_id',
+            'amount_type',
+            'type_tax_use',
+            'l10n_br_allss_tax_rate_compute',
+            'price_include_override',
+            'tax_group_id',
+        ]
+        float_fields = [
+            'amount',
+            'amount_mva',
+            'base_reduction',
+        ]
+
+        domain = []
+        for f in stable_fields_eq:
+            v = vals.get(f)
+            if v not in (None, False, ''):
+                domain.append((f, '=', v))
+
+        for f in float_fields:
+            v = vals.get(f)
+            if v is None:
+                continue
+            # intervalo [v-tol, v+tol]
+            domain += [(f, '>=', v - tol), (f, '<=', v + tol)]
+
+        return domain
+
+
+    def _get_tax(self, 
+                 tax_name: str="", 
+                 allss_account_tax_id: object=None, 
+                 tax_dict: dict={}, 
+                 tax_automation=False, 
+                 **kwargs) -> object:
+        """
+        Busca ou cria um imposto (account.tax) com base em atributos estáveis.
+
+        Args:
+            tax_name (str): Nome do imposto a ser criado, se necessário.
+            allss_account_tax_id (object): Especificidade Brasil do Imposto.
+            tax_dict (dict): Dicionário com os atributos do imposto para fins de busca e criação.
+            tax_automation (bool): Define se a criação automática de impostos está habilitada.
+            kwargs: Argumentos adicionais, como 'icms_inter_tax_id'.
+
+        Returns:
+            
+        """
+
+        message = ""
         obj_account_tax = self.env.get('account.tax')
         obj_account_tax_group = self.env.get('account.tax.group')
-        tax_ids = obj_account_tax.sudo().search(domain, limit=1)
+
+        tax_ids = obj_account_tax.search(self.dict_to_domain_tax(tax_dict), limit=1)
         if not tax_ids and tax_automation:
             tax_group_id = obj_account_tax_group.search([('name', '=', tax_name)], limit=1).id
             if not tax_group_id:
                 tax_group_id = obj_account_tax_group.sudo().create({'name': tax_name}).id
             if obj_account_tax.search([('name', '=', tax_name)]):
                 tax_name += '*'
-            tax_ids = obj_account_tax.sudo().create({
-                'name': tax_name,
-                'l10n_br_allss_account_tax_id': allss_account_tax_id.ids[0],
-                'amount_type': amount_type,
-                'type_tax_use': 'purchase',
-                'amount_mva': kwargs.get('icms_st_aliquota_mva') or 0,
-                'base_reduction': kwargs.get('icms_aliquota_reducao_base') or 0,
-                # 'l10n_br_allss_tax_rate_compute': amount_type != 'fixed' and not tax_aliquot,
-                'l10n_br_allss_tax_rate_compute': False,
-                'amount': amount_type == 'fixed' and tax_value or tax_aliquot,
-                'price_include_override': price_include,
-                'description': tax_name,
-                'tax_group_id': tax_group_id,
-            })
-        return tax_ids
+
+            if 'name' not in tax_dict:
+                tax_dict.update({'name': tax_name})
+            if 'description' not in tax_dict:
+                tax_dict.update({'description': tax_name})
+            if 'tax_group_id' not in tax_dict:
+                tax_dict.update({'tax_group_id': tax_group_id})
+
+            tax_ids = obj_account_tax.sudo().create(tax_dict)
+
+            tax_ids and tax_automation and allss_account_tax_id.ids \
+                and kwargs.get('icms_inter_tax_id') \
+                and allss_account_tax_id[0].write(
+                    {'l10n_br_allss_tax_deduce_result': [(6, 0, [kwargs.get('icms_inter_tax_id')[1]])]}
+                )
+
+            message = f"<ul><li>Imposto criado através da importação do xml da NF-e<br/></li></ul>"
+
+        return [tax_ids, message]
 
 
-    def _create_tax(self, tax_domain, aliquota, company_id):
-        vals = {
-            'type_tax_use': 'purchase',
-            'name': "%s (%s)" % (tax_domain, aliquota),
-            'description': tax_domain,
-            'amount': aliquota,
-            'company_id': company_id.id,
-        }
-        if tax_domain in ('icms', 'pis', 'cofins'):
-            vals.update(dict(amount_type='division', price_include_override='tax_included'))
-        tax = self.env['account.tax'].sudo().create(vals)
-
-        message = (u"<ul><li>Imposto criado através da importação\
-                   do xml da NF-e %s<br/></li></ul>" % self.numero)
-
-        return tax, message
 
     def _create_supplierinfo(self, item, purchase_order_line,
                              automation=False):
