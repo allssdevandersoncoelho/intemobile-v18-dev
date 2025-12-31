@@ -1619,6 +1619,7 @@ class AllssAccountMoveNfeImport(models.Model):
         domain = []
         for f in stable_fields_eq:
             _logger.warning(f">>>>>>>>>> ALLSS > dict_to_domain_tax > f: {f}")
+            _logger.warning(f">>>>>>>>>> ALLSS > dict_to_domain_tax > vals: {vals} | type(vals): {type(vals)}")
             v = vals.get(f)
             _logger.warning(f">>>>>>>>>> ALLSS > dict_to_domain_tax > v: {v}")
             if v not in (None, False, ''):
