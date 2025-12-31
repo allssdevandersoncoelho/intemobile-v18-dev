@@ -1654,8 +1654,13 @@ class AllssAccountMoveNfeImport(models.Model):
         _logger.warning(f">>>>>>>>>> CHEGOU NO _get_tax >>>>>>>>>>>")
 
         message = ""
+        _logger.warning(f">>>>>>>>>> CHEGOU pós message no _get_tax >>>>>>>>>>>")
+        
         obj_account_tax = self.env.get('account.tax')
+        _logger.warning(f">>>>>>>>>> CHEGOU NO obj_account_tax no _get_tax {obj_account_tax}>>>>>>>>>>>")
+
         obj_account_tax_group = self.env.get('account.tax.group')
+        _logger.warning(f">>>>>>>>>> CHEGOU NO obj_account_tax_group no _get_tax {obj_account_tax_group}>>>>>>>>>>>")
 
         tax_ids = obj_account_tax.search(self.dict_to_domain_tax(tax_dict), limit=1)
         _logger.warning(f">>>>>>>>>> ALLSS > GET TAX > tax_ids ({type(tax_ids)}): {tax_ids}")
