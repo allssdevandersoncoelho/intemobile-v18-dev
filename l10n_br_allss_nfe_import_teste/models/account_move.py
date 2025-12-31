@@ -837,7 +837,7 @@ class AllssAccountMoveNfeImport(models.Model):
                             allss_account_tax_id,
                             tax_dict,
                             tax_automation,
-                            kwargs
+                            **kwargs
                         )
         if ret_get_tax:
             tax_ids = ret_get_tax[0]
