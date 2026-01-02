@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_shipping_note">
+        <t t-call="web.external_layout">
+            <t t-foreach="docs" t-as="doc">
+                <style>
+                    * {
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                        text-transform: uppercase;
+                        font-family: Arial, sans-serif;
+                    }
+
+                    body {
+                        font-size: 9px;
+                    }
+
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        border-spacing: 0;
+                        border: 0.6px solid #000;
+                    }
+
+                    th, td {
+                        font-size: 9px;
+                        padding: 3px 4px;
+                        border: 0.6px solid #000;
+                    }
+
+                    th {
+                        font-weight: bold;
+                        text-align: left;
+                    }
+
+                    h4, h5 {
+                        margin-bottom: 2px;
+                        font-size: 10px;
+                        font-weight: bold;
+                    }
+
+                    /* ======== CABEÇALHO ======== */
+                    .company {
+                        border: none !important;
+                        border-collapse: collapse;
+                    }
+
+                    .company td {
+                        vertical-align: top;
+                        border: none !important;
+                    }
+
+                    .address {
+                        font-size: 9px;
+                        line-height: 1.1;
+                    }
+
+                    .shipping {
+                        font-size: 9px;
+                        text-align: right;
+                        border: none !important;
+                        border-collapse: collapse;
+                    }
+
+                    /* ======== FATURA ======== */
+                    .receipt {
+                        font-size: 11px;
+                        font-weight: bold;
+                        text-align: center;
+                    }
+
+                    .data_receipt {
+                        margin-top: 4px;
+                        font-size: 8.5px;
+                    }
+
+                    .data_receipt th, .data_receipt td {
+                        padding: 2px 3px;
+                        text-align: center;
+                        line-height: 1.1;
+                    }
+
+                    /* ======== VALOR POR EXTENSO ======== */
+                    .extensive_value {
+                        margin-top: 4px;
+                    }
+
+                    /* ======== DADOS DO SACADO ======== */
+                    .client {
+                        margin-top: 4px;
+                    }
+
+                    .client td {
+                        text-align: left;
+                        font-size: 9px;
+                        line-height: 1.2;
+                    }
+
+                    /* ======== SERVIÇOS / PRODUTOS ======== */
+                    .service {
+                        margin-top: 4px;
+                    }
+
+                    .service th, .service td {
+                        text-align: center;
+                        font-size: 9px;
+                        padding: 3px;
+                    }
+
+                    #total td {
+                        font-weight: bold;
+                        text-align: right;
+                        font-size: 9px;
+                    }
+
+                    /* ======== MENSAGEM ======== */
+                    .message {
+                        font-size: 8px;
+                        margin-top: 6px;
+                        line-height: 1.2;
+                        border: 0.6px solid #000;
+                        padding: 3px;
+                    }
+
+                    .dashed {
+                        border-top: 0.6px dashed #000;
+                        margin: 10px 0;
+                    }
+
+                    /* ======== ASSINATURA ======== */
+                    .signature {
+                        margin-top: 4px;
+                    }
+
+                    .signature td {
+                        font-size: 8px;
+                    }
+
+                    /* ======== RODAPÉ ======== */
+                    .footer-note {
+                        margin-top: 8px;
+                        font-size: 7px;
+                        text-align: center;
+                        color: #5c5c5c;
+                    }
+
+                    .page { 
+                        display: block; 
+                        width: 100%; 
+                    }
+
+                    .section-title {
+                        font-size: 9px;
+                        font-weight: bold;
+                        border-bottom: 0.6px solid #000;
+                        margin: 5px 0 1px 0;
+                        text-align: left;
+                        letter-spacing: 0.5px;
+                    }
+
+                    .company-header {
+                        text-align: right;
+                        font-size: 9px;
+                        line-height: 1.3;
+                        margin-bottom: 10px;
+                        border: none;
+                        display: block;                   
+                    }
+
+                    .company-header p {
+                        margin: 1px 0;
+                        padding: 0;
+                    }
+
+                    /* ======== REFERÊNCIA DA FATURA ======== */
+                    .invoice-reference h4 {
+                        font-size: 24px;       
+                        font-weight: bold;
+                        text-align: left;
+                        color: #000;
+                        margin-bottom: 6px;
+                        letter-spacing: 1px; 
+                    }
+
+                    .header-container {
+                        display: flex;                 
+                        justify-content: space-between; 
+                        align-items: flex-start;        
+                        margin-bottom: 10px;
+                    }
+
+                </style>
+
+
+
+                <main class="page">
+                    <!-- ====== DADOS DA FATURA ====== -->
+                    <div class="section-title">DADOS DA FATURA</div>
+                    <table class="data_receipt">
+                        <tr>
+                            <th>FATURA</th>
+                            <th>VENCIMENTO</th>
+                            <th>VALOR R$</th>
+                            <!-- <th class="receipt">FATURA</th> -->
+                        </tr>
+                        <t t-foreach="doc.line_ids.filtered(lambda l: l.account_id.account_type == 'asset_receivable')" t-as="line">
+                            <tr>
+                                <td><span t-field="line.name"/></td>
+                                <td><span t-field="line.date_maturity"/></td>
+                                <td><span t-field="line.amount_currency"/></td>
+                                <!-- <td class="receipt"><span t-field="line.move_id.payment_reference"/></td> -->
+                            </tr>
+                        </t>
+                    </table>
+                    <!-- ====== CABEÇALHO EMPRESA ====== -->
+                    <div class="header-container">
+                        <div class="invoice-reference">
+                            <h4> FATURA <span t-field="doc.payment_reference"/></h4>
+                        </div>
+                        <div class="company-header">                        
+                            <h5>FATURA DE LOCAÇÃO E COBRANÇA</h5>
+                            <p>CNPJ: <span t-field="doc.company_id.vat"/></p>
+                            <p>I.E.: <span t-field="doc.company_id.l10n_br_ie_code"/></p>
+                            <p>I.M.: <span t-field="doc.company_id.l10n_br_im_code"/></p>
+                            <p>DATA DE EMISSÃO: <span t-field="doc.invoice_date"/></p>
+                            <div>FONES: <span t-field="doc.company_id.phone"/></div>
+                        </div>
+                    </div>
+                    
+                    
+
+                    <!-- ====== INFORMAÇÕES ADICIONAIS ====== -->
+                    <div class="section-title">INFORMAÇÕES ADICIONAIS</div>
+                    <table class="extensive_value">
+                        <tr>
+                            <td>Valor por Extenso</td>
+                            <td><span t-field="doc.extensive_value"/></td>
+                            <td>Natureza da Operação</td>
+                            <td>LOCAÇÃO</td>
+                        </tr>
+                    </table>
+
+                    <!-- ====== DADOS DO SACADO ====== -->
+                    <div class="section-title">DADOS DO SACADO</div>
+                    <table class="client">
+                        <tr>
+                            <td colspan="3">NOME DO SACADO: <span t-field="doc.partner_id.name"/></td>
+                        </tr>
+                        <tr>
+                            <td colspan="3">ENDEREÇO: 
+                                <span t-field="doc.partner_id.street_name"/>, 
+                                <span t-field="doc.partner_id.street_number"/> - 
+                                <span t-field="doc.partner_id.street2"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>MUNICÍPIO: <span t-field="doc.partner_id.city_id"/></td>
+                            <td>CEP: <span t-field="doc.partner_id.zip"/></td>
+                            <td>ESTADO: <span t-field="doc.partner_id.state_id"/></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">CNPJ / CPF: <span t-field="doc.partner_id.vat"/></td>
+                            <td>I.E.: <span t-field="doc.partner_id.l10n_br_ie_code"/></td>
+                        </tr>
+                    </table>
+
+                    <!-- ====== SERVIÇOS / PRODUTOS ====== -->
+                    <div class="section-title">SERVIÇOS / PRODUTOS</div>
+                    <table class="service">
+                        <tr>
+                            <th style="width:10%;">QTD</th>
+                            <th style="width:50%;">DESCRIÇÃO</th>
+                            <th style="width:15%;">UNITÁRIO</th>
+                            <th style="width:15%;">TOTAL</th>
+                        </tr>
+                        <t t-foreach="doc.invoice_line_ids" t-as="line">
+                            <tr>
+                                <td><span t-field="line.quantity"/></td>
+                                <td style="text-align:left;"><span t-field="line.name"/></td>
+                                <td><span t-field="line.price_unit"/></td>
+                                <td><span t-field="line.price_subtotal"/></td>
+                            </tr>
+                        </t>
+                        <tr id="total">
+                            <td colspan="3">VALOR TOTAL</td>
+                            <td><span t-field="doc.amount_total"/></td>
+                        </tr>
+                    </table>
+
+                    <!-- ====== MENSAGEM AO CLIENTE ====== -->
+                    <div class="section-title">MENSAGEM AO CLIENTE</div>
+                    <div class="message">
+                        A importância desta fatura de locação corresponde à prestação de serviços conforme 
+                        discriminado acima. Emitimos para a cobertura da presente, a respectiva duplicata,
+                        cujo pagamento deverá ser feito a <span t-field="doc.company_id.name"/>, ou
+                        a sua ordem, na praça e no vencimento indicados.
+                    </div>
+                    <div class="section-title">INFORMAÇÕES LEGAIS</div>
+                    <div class="message">
+                        <span t-field="doc.l10n_br_allss_legal_notes"/>
+                    </div>
+
+                    <div class="dashed"></div>
+
+                    <!-- ====== ASSINATURA / RECEBIMENTO ====== -->
+                    <div class="section-title">ASSINATURA / RECEBIMENTO</div>
+                    <table class="signature">
+                        <tr>
+                            <td colspan="2">
+                                Recebi(emos) de <strong t-field="doc.company_id.name"/> os serviços
+                                constantes da fatura de locação e cobrança indicado ao lado.
+                            </td>
+                            <td class="receipt"><span t-field="doc.payment_reference"/></td>
+                        </tr>
+                        <tr>
+                            <td style="width:25%;">DATA DO RECEBIMENTO:<br/><br/><br/></td>
+                            <td>IDENTIFICAÇÃO / ASSINATURA DO RECEBEDOR:<br/><br/><br/></td>
+                            <td></td>
+                        </tr>
+                    </table>
+
+                    <div class="footer-note">
+                        Powered By ALLSS Soluções em Sistemas
+                    </div>
+                </main>
+            </t>
+        </t>
+    </template>
+</odoo>

@@ -217,6 +217,7 @@ class AccountAnalytic(models.Model):
 
 
     def unlink(self):
+        _logger.warning(f"🟢 >>>>>>> unlink do analytic")
         for move in self:
             res_move = self.env['account.move'].search([('id', '=', move.move_id.id)])
 
@@ -230,7 +231,9 @@ class AccountAnalytic(models.Model):
                 result = self.env['allss.balance.account.analytic'].search(["&",
                                                                     ('allss_account_id', '=', move.account_id.id),
                                                                     ("allss_account_analytic_id", "in", analytic_ids),
-                                                                    ("allss_date", "=", move.date)])
+                                                                    ("allss_date", "=", move.date),
+                                                                    ("allss_company_id", "=", line.allss_company_id.id)
+                                                                    ])
                 _logger.warning(f"🟢 Result {result} | analytic_account_id {analytic_ids}")
 
                 for line in result:
@@ -255,6 +258,7 @@ class AccountMoveAnalytic(models.Model):
 
      
     def action_post(self):
+        _logger.warning(f"🟢 >>>>>>> action_post do analytic")
         res = super(AccountMoveAnalytic, self).action_post()
 
         for move in self:
@@ -273,11 +277,11 @@ class AccountMoveAnalytic(models.Model):
                     
                 for analytic_account_id in analytic_ids:                
                     result_ids = self.env['allss.balance.account.analytic'].search(["&",
-                                                                                    ('allss_account_id', '=',
-                                                                                    move_line.account_id.id),
-                                                                                    ("allss_account_analytic_id", "=",
-                                                                                    analytic_account_id),
-                                                                                    ("allss_date", "=", move_line.date)])
+                                                                                    ('allss_account_id', '=', move_line.account_id.id),
+                                                                                    ("allss_account_analytic_id", "=", analytic_account_id),
+                                                                                    ("allss_date", "=", move_line.date),
+                                                                                    ("allss_company_id", "=", move_line.company_id.id)
+                                                                                    ])
                     data = {
                         'allss_company_id': move_line.company_id.id,
                         'allss_account_id': move_line.account_id.id,
@@ -308,8 +312,7 @@ class AccountMoveAnalytic(models.Model):
                         update_vals(self, 1, None, data, res)
         return res
 
-    def button_cancel(self):
-        res = super(AccountMoveAnalytic, self).button_cancel()
+    def cancel_register_analytic(self, res):
         for move in self:
             res_move_line = self.env['account.move.line'].search([('move_id', '=', move.id)])
 
@@ -327,11 +330,10 @@ class AccountMoveAnalytic(models.Model):
 
                 for analytic_account_id in analytic_ids:  
                     result_ids = self.env['allss.balance.account.analytic'].search(["&",
-                                                                                    ('allss_account_id', '=',
-                                                                                    move_line.account_id.id),
-                                                                                    ("allss_account_analytic_id", "=",
-                                                                                    analytic_account_id),
-                                                                                    ("allss_date", "=", move_line.date)])
+                                                                                    ('allss_account_id', '=', move_line.account_id.id),
+                                                                                    ("allss_account_analytic_id", "=", analytic_account_id),
+                                                                                    ("allss_date", "=", move_line.date),
+                                                                                    ("allss_company_id", "=", move_line.company_id.id)])
 
                     data = {
                         'allss_company_id': move_line.company_id.id,
@@ -350,6 +352,7 @@ class AccountMoveAnalytic(models.Model):
 
                     # SE A PESQUISA GERAR RESULTADO ATUALIZA O CADASTRO
                     if len(result_ids) != 0:
+                        _logger.warning(f"🔵Entrou no option com registros (Analítico)")
                         for result in result_ids:
                             data.update({'id': result.id})
                             data.update({'allss_analytic_plan_id': result.allss_analytic_plan_id.id})
@@ -360,6 +363,17 @@ class AccountMoveAnalytic(models.Model):
 
                     # SE A PESQUISA NÃO GERAR RESULTADO CRIA O CADASTRO
                     else:
+                        _logger.warning(f"🔵Entrou no option sem registros (Analítico)")
                         update_vals(self, 1, None, data, res)
+        return
 
+
+    def button_cancel(self):
+        res = super(AccountMoveAnalytic, self).button_cancel()
+        self.cancel_register_analytic(res)
+        return res
+
+    def button_draft(self):
+        res = super(AccountMoveAnalytic, self).button_draft()
+        self.cancel_register_analytic(res)
         return res

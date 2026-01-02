@@ -184,7 +184,8 @@ class BalanceAccountStructure(models.Model):
     def open_document(self, options=None, params=None):
         domain = ['&',
                   ('date', '=', self.allss_date),
-                  ('account_id', '=', self.allss_account_id.id)
+                  ('account_id', '=', self.allss_account_id.id),
+                  ('parent_state', '=', 'posted')
                   ]
         dict_ret = {'type': 'ir.actions.act_window',
                     'name': f'Balancete Estruturado - Conta: {self.allss_account_id.id} - Data: {self.allss_date}',

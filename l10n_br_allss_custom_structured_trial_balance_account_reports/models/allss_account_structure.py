@@ -211,7 +211,8 @@ class AccountMoveLine(models.Model):
         return result
 
 
-    def unlink(self):        
+    def unlink(self):
+        _logger.warning(f"🟢 >>>>>>> action_post do normal")
         for move in self:
             res_move = self.env['account.move'].search([('id', '=', move.move_id.id)])
             
@@ -219,7 +220,9 @@ class AccountMoveLine(models.Model):
                 continue                        
             result = self.env['allss.balance.account.structure'].search(["&",
                                                                 ('allss_account_id', '=', move.account_id.id),
-                                                                ("allss_date", "=", move.date)])
+                                                                ("allss_date", "=", move.date),
+                                                                ("allss_company_id", "=", result.allss_company_id.id)
+                                                                ])
             
             # _logger.warning(f"RESULT unlink {result}")
             data = {
@@ -241,6 +244,7 @@ class AccountMoveStructure(models.Model):
      
     # def post(self, invoice=False):
     def action_post(self):
+        _logger.warning(f"🟢 >>>>>>> action_post do normal")
         res = super(AccountMoveStructure, self).action_post()
 
         for move in self:
@@ -250,7 +254,9 @@ class AccountMoveStructure(models.Model):
 
                 result_ids = self.env['allss.balance.account.structure'].search(["&",
                                                                                  ('allss_account_id', '=', move_line.account_id.id),
-                                                                                 ("allss_date", "=", move_line.date)])
+                                                                                 ("allss_date", "=", move_line.date),
+                                                                                 ("allss_company_id", "=", move_line.company_id.id)
+                                                                                 ])
                 _logger.warning(f"DENTRO DO POST RESULT IDS {result_ids}")
 
                 data = {
@@ -281,19 +287,17 @@ class AccountMoveStructure(models.Model):
                     update_vals_structure(self, 1, None, data, res)
         return res
 
-
-    def button_cancel(self):
-        res = super(AccountMoveStructure, self).button_cancel()
-
+    
+    def cancel_register(self, res):
         for move in self:
             res_move_line = self.env['account.move.line'].search([('move_id', '=', move.id)])
 
             for move_line in res_move_line:
 
                 result_ids = self.env['allss.balance.account.structure'].search(["&",
-                                                                                 ('allss_account_id', '=',
-                                                                                  move_line.account_id.id),
-                                                                                 ("allss_date", "=", move_line.date)])
+                                                                                 ('allss_account_id', '=', move_line.account_id.id),
+                                                                                 ("allss_date", "=", move_line.date),
+                                                                                 ("allss_company_id", "=", move_line.company_id.id)])
 
                 data = {
                     'allss_company_id': move_line.company_id.id,
@@ -310,7 +314,7 @@ class AccountMoveStructure(models.Model):
 
                 # SE A PESQUISA GERAR RESULTADO ATUALIZA O CADASTRO
                 if len(result_ids) != 0:
-                    _logger.warning(f"🔵Entrou no option 2")
+                    _logger.warning(f"🔵Entrou no option com registros (Normal)")
                     for result in result_ids:
                         data.update({'id': result.id})
                         data.update({'allss_company_id': result.allss_company_id.id})
@@ -319,7 +323,17 @@ class AccountMoveStructure(models.Model):
 
                 # SE A PESQUISA NÃO GERAR RESULTADO CRIA O CADASTRO
                 else:
-                    _logger.warning(f"🔵Entrou no option 3")
+                    _logger.warning(f"🔵Entrou no option sem registros (Normal)")
                     update_vals_structure(self, 1, None, data, res)
+        return
 
+
+    def button_cancel(self):
+        res = super(AccountMoveStructure, self).button_cancel()
+        self.cancel_register(res)
+        return res
+
+    def button_draft(self):
+        res = super(AccountMoveStructure, self).button_draft()
+        self.cancel_register(res)
         return res

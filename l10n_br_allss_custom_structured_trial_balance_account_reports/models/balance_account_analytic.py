@@ -208,7 +208,8 @@ class BalanceAccountAnalytic(models.Model):
 
         domain = ['&',
                   ('date', '=', self.allss_date),
-                  ('account_id', '=', self.allss_account_id.id)
+                  ('account_id', '=', self.allss_account_id.id),
+                  ('parent_state', '=', 'posted')
                   ]
 
         dict_ret = {'type': 'ir.actions.act_window',
