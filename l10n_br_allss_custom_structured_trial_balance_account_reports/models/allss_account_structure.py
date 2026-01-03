@@ -213,28 +213,30 @@ class AccountMoveLine(models.Model):
 
     def unlink(self):
         _logger.warning(f"🟢 >>>>>>> action_post do normal")
+        res = None
         for move in self:
-            res_move = self.env['account.move'].search([('id', '=', move.move_id.id)])
-            
-            if res_move.state == 'draft':
-                continue                        
-            result = self.env['allss.balance.account.structure'].search(["&",
-                                                                ('allss_account_id', '=', move.account_id.id),
-                                                                ("allss_date", "=", move.date),
-                                                                ("allss_company_id", "=", result.allss_company_id.id)
-                                                                ])
-            
-            # _logger.warning(f"RESULT unlink {result}")
-            data = {
-                'allss_company_id': result.allss_company_id.id,
-                'allss_account_id': result.allss_account_id.id,
-                'allss_date': result.allss_date,
-                'allss_debit': result.allss_debit,
-                'allss_credit': result.allss_credit
-            }
-            update_vals_structure(self, 3, move, data, result)
+            if move.parent_state == 'posted':
+                res_move = self.env['account.move'].search([('id', '=', move.move_id.id)])
+                
+                if res_move.state == 'draft':
+                    continue                        
+                result = self.env['allss.balance.account.structure'].search(["&",
+                                                                    ('allss_account_id', '=', move.account_id.id),
+                                                                    ("allss_date", "=", move.date),
+                                                                    ("allss_company_id", "=", result.allss_company_id.id)
+                                                                    ])
+                
+                # _logger.warning(f"RESULT unlink {result}")
+                data = {
+                    'allss_company_id': result.allss_company_id.id,
+                    'allss_account_id': result.allss_account_id.id,
+                    'allss_date': result.allss_date,
+                    'allss_debit': result.allss_debit,
+                    'allss_credit': result.allss_credit
+                }
+                update_vals_structure(self, 3, move, data, result)
 
-        res = super(AccountMoveLine, self).unlink()
+            res = super(AccountMoveLine, self).unlink()
         return res
 
 
@@ -329,11 +331,13 @@ class AccountMoveStructure(models.Model):
 
 
     def button_cancel(self):
+        if self.state == 'posted':
+            self.cancel_register(self)
         res = super(AccountMoveStructure, self).button_cancel()
-        self.cancel_register(res)
         return res
 
     def button_draft(self):
+        if self.state == 'posted':
+            self.cancel_register(self)
         res = super(AccountMoveStructure, self).button_draft()
-        self.cancel_register(res)
         return res

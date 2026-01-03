@@ -218,36 +218,37 @@ class AccountAnalytic(models.Model):
 
     def unlink(self):
         _logger.warning(f"🟢 >>>>>>> unlink do analytic")
+        res = None
         for move in self:
-            res_move = self.env['account.move'].search([('id', '=', move.move_id.id)])
+            if move.parent_state == 'posted':
+                res_move = self.env['account.move'].search([('id', '=', move.move_id.id)])
 
-            if res_move.state == 'draft':
-                continue
+                if res_move.state == 'draft':
+                    continue
 
-            if move.analytic_distribution:
-        
-                analytic_ids = [int(x) for x in move.analytic_distribution.keys()]
+                if move.analytic_distribution:
+            
+                    analytic_ids = [int(x) for x in move.analytic_distribution.keys()]
 
-                result = self.env['allss.balance.account.analytic'].search(["&",
-                                                                    ('allss_account_id', '=', move.account_id.id),
-                                                                    ("allss_account_analytic_id", "in", analytic_ids),
-                                                                    ("allss_date", "=", move.date),
-                                                                    ("allss_company_id", "=", line.allss_company_id.id)
-                                                                    ])
-                _logger.warning(f"🟢 Result {result} | analytic_account_id {analytic_ids}")
+                    result = self.env['allss.balance.account.analytic'].search(["&",
+                                                                        ('allss_account_id', '=', move.account_id.id),
+                                                                        ("allss_account_analytic_id", "in", analytic_ids),
+                                                                        ("allss_date", "=", move.date),
+                                                                        ("allss_company_id", "=", line.allss_company_id.id)
+                                                                        ])
+                    _logger.warning(f"🟢 Result {result} | analytic_account_id {analytic_ids}")
 
-                for line in result:
-                    data = {
-                        'allss_company_id': line.allss_company_id.id,
-                        'allss_account_id': line.allss_account_id.id,
-                        'allss_analytic_plan_id': line.allss_analytic_plan_id.id,
-                        'allss_account_analytic_id': line.allss_account_analytic_id.id,
-                        'allss_date': line.allss_date,
-                        'allss_debit': line.allss_debit,
-                        'allss_credit': line.allss_credit
-                    }
-
-                    update_vals(self, 3, move, data, line)
+                    for line in result:
+                        data = {
+                            'allss_company_id': line.allss_company_id.id,
+                            'allss_account_id': line.allss_account_id.id,
+                            'allss_analytic_plan_id': line.allss_analytic_plan_id.id,
+                            'allss_account_analytic_id': line.allss_account_analytic_id.id,
+                            'allss_date': line.allss_date,
+                            'allss_debit': line.allss_debit,
+                            'allss_credit': line.allss_credit
+                        }
+                        update_vals(self, 3, move, data, line)
 
         res = super(AccountAnalytic, self).unlink()
         return res
@@ -369,11 +370,13 @@ class AccountMoveAnalytic(models.Model):
 
 
     def button_cancel(self):
+        if self.state == 'posted':
+            self.cancel_register_analytic(self)
         res = super(AccountMoveAnalytic, self).button_cancel()
-        self.cancel_register_analytic(res)
         return res
 
     def button_draft(self):
+        if self.state == 'posted':
+            self.cancel_register_analytic(self)
         res = super(AccountMoveAnalytic, self).button_draft()
-        self.cancel_register_analytic(res)
         return res
